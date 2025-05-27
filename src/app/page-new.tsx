@@ -20,18 +20,9 @@ export default function Home() {
           <p className="text-xl text-gray-600 mb-8">
             Built with Next.js + Hono + Spring Boot
           </p>
-        </div>{" "}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-          {/* Coffee Landing Page Card */}
-          <Link href="/coffee-landing" className="group">
-            <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-all duration-200 group-hover:scale-105">
-              <div className="text-amber-600 text-3xl mb-4">☕</div>
-              <h3 className="text-xl font-semibold mb-2">Coffee Landing</h3>
-              <p className="text-gray-600">
-                Beautiful coffee shop landing page with modern design
-              </p>
-            </div>
-          </Link>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
           {/* API Test Card */}
           <Link href="/api-test" className="group">
             <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-all duration-200 group-hover:scale-105">
@@ -41,7 +32,8 @@ export default function Home() {
                 Test the basic API connection between Next.js and Spring Boot
               </p>
             </div>
-          </Link>{" "}
+          </Link>
+
           {/* Hono Test Card */}
           <Link href="/hono-test" className="group">
             <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-all duration-200 group-hover:scale-105">
@@ -52,16 +44,7 @@ export default function Home() {
               </p>
             </div>
           </Link>
-          {/* User Roles Test Card */}
-          <Link href="/role-test" className="group">
-            <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-all duration-200 group-hover:scale-105">
-              <div className="text-purple-500 text-3xl mb-4">👤</div>
-              <h3 className="text-xl font-semibold mb-2">User Roles</h3>
-              <p className="text-gray-600">
-                Test and manage user roles (admin, cashier, customer)
-              </p>
-            </div>
-          </Link>
+
           {/* Cart Demo Card */}
           <Link href="/cart" className="group">
             <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-all duration-200 group-hover:scale-105">
@@ -73,6 +56,7 @@ export default function Home() {
             </div>
           </Link>
         </div>
+
         <div className="bg-white rounded-lg shadow-md p-8">
           <h2 className="text-2xl font-semibold mb-6 text-center">
             Technology Stack
@@ -107,6 +91,7 @@ export default function Home() {
             </div>
           </div>
         </div>
+
         <div className="mt-8 bg-yellow-50 border border-yellow-200 rounded-lg p-6">
           <h3 className="font-semibold text-yellow-800 mb-2">
             🔥 Hono Benefits

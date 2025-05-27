@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 
 interface CartItem {
   id: number;
@@ -23,13 +23,13 @@ interface Cart {
 export default function CartPage() {
   const [cart, setCart] = useState<Cart | null>(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const userId = 1; // Mock user ID
 
   // Fetch cart data
   const fetchCart = async () => {
     setLoading(true);
-    setError('');
+    setError("");
     try {
       const response = await fetch(`/api/cart/${userId}`);
       if (!response.ok) {
@@ -38,7 +38,11 @@ export default function CartPage() {
       const data: Cart = await response.json();
       setCart(data);
     } catch (err) {
-      setError(`Failed to load cart: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      setError(
+        `Failed to load cart: ${
+          err instanceof Error ? err.message : "Unknown error"
+        }`
+      );
     } finally {
       setLoading(false);
     }
@@ -46,32 +50,36 @@ export default function CartPage() {
 
   // Add item to cart
   const addToCart = async (productId: number, name: string, price: number) => {
-    setError('');
+    setError("");
     try {
       const response = await fetch(`/api/cart/${userId}/add`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           productId,
           name,
           price,
-          quantity: 1
-        })
+          quantity: 1,
+        }),
       });
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       const result = await response.json();
-      console.log('Item added:', result);
-      
+      console.log("Item added:", result);
+
       // Refresh cart
       fetchCart();
     } catch (err) {
-      setError(`Failed to add item: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      setError(
+        `Failed to add item: ${
+          err instanceof Error ? err.message : "Unknown error"
+        }`
+      );
     }
   };
 
@@ -110,7 +118,7 @@ export default function CartPage() {
               <h3 className="font-medium">Ethiopian Coffee</h3>
               <p className="text-gray-600">$15.99</p>
               <button
-                onClick={() => addToCart(1, 'Ethiopian Coffee', 15.99)}
+                onClick={() => addToCart(1, "Ethiopian Coffee", 15.99)}
                 className="mt-2 bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 rounded"
               >
                 Add to Cart
@@ -120,7 +128,7 @@ export default function CartPage() {
               <h3 className="font-medium">Colombian Blend</h3>
               <p className="text-gray-600">$12.99</p>
               <button
-                onClick={() => addToCart(2, 'Colombian Blend', 12.99)}
+                onClick={() => addToCart(2, "Colombian Blend", 12.99)}
                 className="mt-2 bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 rounded"
               >
                 Add to Cart
@@ -130,7 +138,7 @@ export default function CartPage() {
               <h3 className="font-medium">French Roast</h3>
               <p className="text-gray-600">$14.99</p>
               <button
-                onClick={() => addToCart(3, 'French Roast', 14.99)}
+                onClick={() => addToCart(3, "French Roast", 14.99)}
                 className="mt-2 bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 rounded"
               >
                 Add to Cart
@@ -142,29 +150,40 @@ export default function CartPage() {
         {/* Cart Display */}
         <div className="bg-white rounded-lg shadow p-6">
           <h2 className="text-xl font-semibold mb-4">Your Cart</h2>
-          
+
           {cart ? (
             <div>
               {cart.items.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">Your cart is empty</p>
+                <p className="text-gray-500 text-center py-8">
+                  Your cart is empty
+                </p>
               ) : (
                 <div>
                   {cart.items.map((item) => (
-                    <div key={item.id} className="flex justify-between items-center py-4 border-b">
+                    <div
+                      key={item.id}
+                      className="flex justify-between items-center py-4 border-b"
+                    >
                       <div>
                         <h3 className="font-medium">{item.name}</h3>
-                        <p className="text-gray-600">Quantity: {item.quantity}</p>
+                        <p className="text-gray-600">
+                          Quantity: {item.quantity}
+                        </p>
                       </div>
                       <div className="text-right">
-                        <p className="font-semibold">${(item.price * item.quantity).toFixed(2)}</p>
+                        <p className="font-semibold">
+                          ${(item.price * item.quantity).toFixed(2)}
+                        </p>
                       </div>
                     </div>
                   ))}
-                  
+
                   <div className="mt-6 pt-6 border-t">
                     <div className="flex justify-between items-center">
                       <span className="text-xl font-semibold">Total:</span>
-                      <span className="text-xl font-bold">${cart.total.toFixed(2)}</span>
+                      <span className="text-xl font-bold">
+                        ${cart.total.toFixed(2)}
+                      </span>
                     </div>
                   </div>
                 </div>
