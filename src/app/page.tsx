@@ -32,6 +32,26 @@ export default function Home() {
               </p>
             </div>
           </Link>
+          {/* Product Detail Page Card */}
+          <Link href="/product" className="group">
+            <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-all duration-200 group-hover:scale-105">
+              <div className="text-purple-600 text-3xl mb-4">🫘</div>
+              <h3 className="text-xl font-semibold mb-2">Coffee Detail</h3>
+              <p className="text-gray-600">
+                Interactive product detail page with dynamic content
+              </p>
+            </div>
+          </Link>
+          {/* Order Flow Card */}
+          <Link href="/order" className="group">
+            <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-all duration-200 group-hover:scale-105">
+              <div className="text-purple-600 text-3xl mb-4">🛒</div>
+              <h3 className="text-xl font-semibold mb-2">Order Flow</h3>
+              <p className="text-gray-600">
+                Complete coffee ordering system with payment and confirmation
+              </p>
+            </div>
+          </Link>
           {/* API Test Card */}
           <Link href="/api-test" className="group">
             <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-all duration-200 group-hover:scale-105">
