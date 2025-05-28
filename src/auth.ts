@@ -1,19 +1,22 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import axios from "axios";
 import { db } from "./db/db";
+import axios from "axios";
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
     provider: "pg",
   }),
   onUserCreate: async (user, ctx) => {
-    // Kirim data pengguna ke Spring Boot
     try {
       await axios.post(`${process.env.SPRING_BOOT_URL}/users`, {
-        id: user.id,
+        user_id: user.id,
+        username: user.username || `user_${user.id}`,
         email: user.email,
-        name: user.name,
+        full_name: user.name,
+        phone_number: user.phone_number || null,
+        address: user.address || null,
+        role: "customer",
       });
       console.log("User data sent to Spring Boot:", user.email);
     } catch (error) {

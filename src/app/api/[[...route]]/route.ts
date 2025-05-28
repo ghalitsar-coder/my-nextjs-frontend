@@ -1,6 +1,5 @@
 import { Hono } from "hono";
 import { handle } from "hono/vercel";
-
 // Create a new Hono app
 const app = new Hono().basePath("/api");
 
@@ -299,6 +298,53 @@ app.get("/search", async (c) => {
 // Hello endpoint for testing
 app.get("/hello", (c) => {
   return c.text("Hello from Hono API! 🔥");
+});
+
+app.post("/auth/sign-up", async (c) => {
+  const body = await c.req.json();
+  try {
+    const result = await auth.api.signUp({
+      email: body.email,
+      password: body.password,
+      full_name: body.full_name,
+      username: body.username,
+      phone_number: body.phone_number || null,
+      address: body.address || null,
+    });
+    return c.json(result, 200);
+  } catch (error: any) {
+    return c.json({ error: error.message }, 400);
+  }
+});
+
+app.post("/auth/sign-in", async (c) => {
+  const body = await c.req.json();
+  try {
+    const result = await auth.api.signIn({
+      email: body.email,
+      password: body.password,
+    });
+    return c.json(result, 200);
+  } catch (error: any) {
+    return c.json({ error: error.message }, 400);
+  }
+});
+
+app.get("/auth/google", async (c) => {
+  const redirectUrl = await auth.api.getOAuthUrl("google", {
+    redirectUri: `${c.req.url}/callback`,
+  });
+  return c.redirect(redirectUrl);
+});
+
+app.get("/auth/google/callback", async (c) => {
+  try {
+    const result = await auth.api.handleOAuthCallback(c.req.url, "google");
+    // Redirect ke dashboard dengan token atau session
+    return c.redirect("/dashboard");
+  } catch (error: any) {
+    return c.json({ error: error.message }, 400);
+  }
 });
 
 // Catch-all for undefined routes
