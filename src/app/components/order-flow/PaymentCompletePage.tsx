@@ -81,7 +81,9 @@ export default function PaymentCompletePage() {
               </h1>
             </div>
             <div className="flex items-center space-x-2">
-              <span className="hidden md:inline text-sm font-medium text-gray-600">Order Confirmation</span>
+              <span className="hidden md:inline text-sm font-medium text-gray-600">
+                Order Confirmation
+              </span>
               <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
                 <i className="fas fa-check text-green-600"></i>
               </div>
@@ -98,7 +100,8 @@ export default function PaymentCompletePage() {
             currentStep={3}
             allowNavigation={true}
           />
-        </div>        {/* Confirmation Card */}
+        </div>{" "}
+        {/* Confirmation Card */}
         <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-2xl p-12 text-center mb-12 border border-white/20">
           <div className="confirmation-animation text-green-500 text-8xl mb-6 drop-shadow-lg">
             <i className="fas fa-check-circle"></i>
@@ -107,11 +110,14 @@ export default function PaymentCompletePage() {
             Order Confirmed!
           </h2>
           <p className="text-xl text-gray-600 mb-8 max-w-md mx-auto leading-relaxed">
-            Thank you for your order. We&apos;re preparing your coffee with love and care.
+            Thank you for your order. We&apos;re preparing your coffee with love
+            and care.
           </p>
 
           <div className="bg-gradient-to-r from-purple-100 to-indigo-100 rounded-2xl p-6 inline-block mb-8 shadow-lg border border-purple-200">
-            <p className="text-sm font-medium text-gray-600 mb-2">Order Number</p>
+            <p className="text-sm font-medium text-gray-600 mb-2">
+              Order Number
+            </p>
             <p className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
               {orderInfo.orderNumber}
             </p>
@@ -128,7 +134,8 @@ export default function PaymentCompletePage() {
               <i className="fas fa-arrow-left mr-3"></i> Back to Payment
             </Link>
           </div>
-        </div>        {/* Order Details */}
+        </div>{" "}
+        {/* Order Details */}
         <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-2xl p-8 mb-8 border border-white/20">
           <h2 className="text-2xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent mb-6 flex items-center">
             <i className="fas fa-info-circle mr-3 text-purple-600"></i>
@@ -147,10 +154,12 @@ export default function PaymentCompletePage() {
                   <span className="font-medium w-16">Name:</span> John Doe
                 </p>
                 <p className="flex items-center">
-                  <span className="font-medium w-16">Email:</span> john.doe@example.com
+                  <span className="font-medium w-16">Email:</span>{" "}
+                  john.doe@example.com
                 </p>
                 <p className="flex items-center">
-                  <span className="font-medium w-16">Phone:</span> (555) 123-4567
+                  <span className="font-medium w-16">Phone:</span> (555)
+                  123-4567
                 </p>
               </div>
             </div>
@@ -163,10 +172,12 @@ export default function PaymentCompletePage() {
               </h3>
               <div className="space-y-3 text-gray-600">
                 <p>
-                  <span className="font-medium">Location:</span> Coffee Haven Downtown
+                  <span className="font-medium">Location:</span> Coffee Haven
+                  Downtown
                 </p>
                 <p>
-                  <span className="font-medium">Address:</span> 123 Main Street, Suite 100
+                  <span className="font-medium">Address:</span> 123 Main Street,
+                  Suite 100
                 </p>
                 <p>
                   <span className="font-medium">Time:</span> Today at 3:45 PM
@@ -174,7 +185,8 @@ export default function PaymentCompletePage() {
               </div>
             </div>
           </div>
-        </div>        {/* Order Items */}
+        </div>{" "}
+        {/* Order Items */}
         <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-2xl p-8 border border-white/20">
           <h2 className="text-2xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent mb-6 flex items-center">
             <i className="fas fa-coffee mr-3 text-purple-600"></i>
@@ -198,7 +210,9 @@ export default function PaymentCompletePage() {
                     />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-lg text-gray-800">{item.name}</h3>
+                    <h3 className="font-semibold text-lg text-gray-800">
+                      {item.name}
+                    </h3>
                     <p className="text-gray-600 mb-2">{item.size}</p>
                     {item.options && item.options.length > 0 && (
                       <div className="mt-2">
@@ -250,8 +264,12 @@ export default function PaymentCompletePage() {
                 </span>
               </div>
               <div className="flex justify-between pt-3 border-t border-purple-200">
-                <span className="text-xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">Total Paid</span>
-                <span className="text-xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">${orderInfo.total}</span>
+                <span className="text-xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
+                  Total Paid
+                </span>
+                <span className="text-xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
+                  ${orderInfo.total}
+                </span>
               </div>
             </div>
           </div>
@@ -286,7 +304,8 @@ export default function PaymentCompletePage() {
               </div>
             </div>
           </div>
-        </div>        {/* Order Status */}
+        </div>{" "}
+        {/* Order Status */}
         <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-2xl p-8 mt-8 border border-white/20">
           <h2 className="text-2xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent mb-8 flex items-center">
             <i className="fas fa-truck mr-3 text-purple-600"></i>
@@ -305,7 +324,9 @@ export default function PaymentCompletePage() {
                   <i className="fas fa-check"></i>
                 </div>
                 <div className="ml-2 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-4 border border-green-200">
-                  <h3 className="font-semibold text-gray-800">Order Received</h3>
+                  <h3 className="font-semibold text-gray-800">
+                    Order Received
+                  </h3>
                   <p className="text-sm text-gray-600">
                     {formatDate(orderInfo.orderDate)}
                   </p>
@@ -331,7 +352,9 @@ export default function PaymentCompletePage() {
                   <i className="fas fa-store"></i>
                 </div>
                 <div className="ml-2 bg-gray-50 rounded-xl p-4 border border-gray-200">
-                  <h3 className="font-medium text-gray-500">Ready for Pickup</h3>
+                  <h3 className="font-medium text-gray-500">
+                    Ready for Pickup
+                  </h3>
                   <p className="text-sm text-gray-400">
                     We&apos;ll notify you when ready
                   </p>
@@ -344,19 +367,23 @@ export default function PaymentCompletePage() {
               <div className="flex items-start">
                 <i className="fas fa-bell text-purple-600 text-2xl mt-1 mr-4"></i>
                 <div>
-                  <h3 className="font-semibold text-lg text-gray-800 mb-2">Get Notified</h3>
+                  <h3 className="font-semibold text-lg text-gray-800 mb-2">
+                    Get Notified
+                  </h3>
                   <p className="text-gray-600">
-                    We&apos;ll send you updates about your order status via SMS and email.
+                    We&apos;ll send you updates about your order status via SMS
+                    and email.
                   </p>
                 </div>
               </div>
             </div>
           </div>
         </div>
-
         {/* Footer CTA */}
         <div className="mt-12 text-center">
-          <p className="text-xl text-gray-600 mb-6">Need help with your order?</p>
+          <p className="text-xl text-gray-600 mb-6">
+            Need help with your order?
+          </p>
           <button className="bg-white/80 border-2 border-purple-300 text-purple-600 px-8 py-4 rounded-2xl font-semibold hover:bg-purple-50 hover:border-purple-400 transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-1 transform backdrop-blur-sm">
             <i className="fas fa-headset mr-3"></i> Contact Support
           </button>
