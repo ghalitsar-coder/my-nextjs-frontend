@@ -1,3 +1,4 @@
+import { auth } from "@/auth";
 import { Hono } from "hono";
 import { handle } from "hono/vercel";
 // Create a new Hono app

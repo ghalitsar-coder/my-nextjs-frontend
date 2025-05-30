@@ -6,22 +6,11 @@ import Image from "next/image";
 import ProgressSteps from "./ProgressSteps";
 import { ORDER_FLOW_STEPS, getStepInfo } from "./StepsConfig";
 
-// Define type for a cart item
-type CartItem = {
-  id: number;
-  name: string;
-  price: number;
-  size: string;
-  quantity: number;
-  options?: string[];
-};
-
 // Define payment method type
 type PaymentMethod = "cash" | "card" | "digital";
 
 export default function PaymentPage() {
   const router = useRouter();
-  const [cart, setCart] = useState<CartItem[]>([]);
   const [discountAmount, setDiscountAmount] = useState(0);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
   const [isProcessing, setIsProcessing] = useState(false);
@@ -122,490 +111,562 @@ export default function PaymentPage() {
       router.push(nextStepRoute);
     }, 2000);
   };
-
-  // Load cart from localStorage on component mount
+  // Load discount from localStorage on component mount
   useEffect(() => {
-    const savedCart = localStorage.getItem("coffee-cart");
     const savedDiscount = localStorage.getItem("coffee-discount");
-
-    if (savedCart) {
-      setCart(JSON.parse(savedCart));
-    }
 
     if (savedDiscount) {
       setDiscountAmount(parseFloat(savedDiscount));
     }
   }, []);
-
   return (
-    <div className="container mx-auto px-4 py-8 max-w-6xl">
-      {/* Header */}
-      <header className="flex justify-between items-center mb-8">
-        <div className="flex items-center">
-          <i className="fas fa-mug-hot text-3xl text-purple-600 mr-3"></i>
-          <h1 className="text-2xl font-bold text-gray-800">Coffee Haven</h1>
-        </div>
-        <div className="text-sm text-gray-500">
-          <span className="hidden md:inline">Secure Payment</span>
-          <i className="fas fa-lock ml-2 text-purple-600"></i>
-        </div>
-      </header>{" "}
-      {/* Progress Steps */}
-      <ProgressSteps
-        steps={ORDER_FLOW_STEPS}
-        currentStep={2}
-        allowNavigation={true}
-      />
-      <div className="flex flex-col lg:flex-row gap-8">
-        {/* Left Column - Order Summary */}
-        <div className="lg:w-2/3">
-          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-            <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center">
-              <i className="fas fa-receipt mr-2 text-purple-600"></i>
-              Order Summary
-            </h2>
-
-            {/* Order Items */}
-            <div className="space-y-4 mb-6">
-              {orderItems.map((item, index) => (
-                <div
-                  key={index}
-                  className="flex justify-between items-start border-b pb-4"
-                >
-                  <div className="flex items-start">
-                    <div className="w-16 h-16 relative rounded-lg overflow-hidden mr-4">
-                      <Image
-                        src={item.image}
-                        alt={item.name}
-                        fill
-                        sizes="64px"
-                        className="object-cover"
-                      />
-                    </div>
-                    <div>
-                      <h3 className="font-medium text-gray-800">{item.name}</h3>
-                      <p className="text-sm text-gray-500">{item.size}</p>
-                      {item.options && item.options.length > 0 && (
-                        <div className="mt-1">
-                          {item.options.map((option, i) => (
-                            <span
-                              key={i}
-                              className="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded mr-1"
-                            >
-                              {option}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-medium text-gray-800">
-                      ${item.price.toFixed(2)}
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      Qty: {item.quantity}
-                    </p>
-                  </div>
-                </div>
-              ))}
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-indigo-50">
+      <div className="container mx-auto px-4 py-8 max-w-7xl">
+        {/* Header */}
+        <header className="flex justify-between items-center mb-10">
+          <div className="flex items-center">
+            <div className="bg-purple-600 p-3 rounded-xl shadow-lg mr-4">
+              <i className="fas fa-mug-hot text-2xl text-white"></i>
             </div>
-
-            {/* Order Notes */}
-            <div className="mb-6">
-              <label
-                htmlFor="notes"
-                className="block text-sm font-medium text-gray-700 mb-2"
-              >
-                Special Instructions
-              </label>
-              <textarea
-                id="notes"
-                rows={2}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                placeholder="Any special requests for your order?"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-              ></textarea>
-            </div>
-
-            {/* Promo Code */}
-            <div className="mb-6">
-              <label
-                htmlFor="promo"
-                className="block text-sm font-medium text-gray-700 mb-2"
-              >
-                Promo Code
-              </label>
-              <div className="flex">
-                <input
-                  type="text"
-                  id="promo"
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  placeholder="Enter promo code"
-                  value={promoCode}
-                  onChange={(e) => setPromoCode(e.target.value)}
-                />
-                <button className="bg-purple-600 text-white px-4 py-2 rounded-r-md hover:bg-purple-700 transition duration-200">
-                  Apply
-                </button>
-              </div>
+            <div>
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
+                Coffee Haven
+              </h1>
+              <p className="text-gray-500 text-sm">Secure payment processing</p>
             </div>
           </div>
-
-          {/* Payment Methods */}
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center">
-              <i className="fas fa-credit-card mr-2 text-purple-600"></i>
-              Payment Method
-            </h2>
-
-            <div className="space-y-4">
-              {/* Cash */}
-              <div
-                className={`payment-method border rounded-lg p-4 cursor-pointer transition duration-200 ${
-                  paymentMethod === "cash"
-                    ? "border-purple-600 bg-purple-50"
-                    : ""
-                }`}
-                onClick={() => selectPaymentMethod("cash")}
-              >
-                <div className="flex items-center">
-                  <input
-                    type="radio"
-                    name="payment"
-                    id="cash"
-                    className="custom-radio mr-3"
-                    checked={paymentMethod === "cash"}
-                    onChange={() => selectPaymentMethod("cash")}
-                  />
-                  <div className="flex items-center mr-auto">
-                    <i className="fas fa-money-bill-wave payment-icon text-2xl text-green-500 mr-3"></i>
-                    <div>
-                      <label
-                        htmlFor="cash"
-                        className="font-medium text-gray-800 cursor-pointer"
-                      >
-                        Cash
-                      </label>
-                      <p className="text-sm text-gray-500">
-                        Pay with cash when you pick up
-                      </p>
-                    </div>
-                  </div>
+          <div className="hidden md:flex items-center bg-white px-4 py-2 rounded-full shadow-md">
+            <span className="text-gray-600 mr-2">Secure Payment</span>
+            <div className="bg-green-100 p-2 rounded-full">
+              <i className="fas fa-lock text-green-600"></i>
+            </div>
+          </div>
+        </header>
+        {/* Progress Steps */}
+        <div className="mb-12">
+          <ProgressSteps
+            steps={ORDER_FLOW_STEPS}
+            currentStep={2}
+            allowNavigation={true}
+          />
+        </div>{" "}
+        <div className="flex flex-col lg:flex-row gap-8">
+          {/* Left Column - Order Summary */}
+          <div className="lg:w-2/3">
+            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8 mb-8">
+              <h2 className="text-2xl font-bold text-gray-800 mb-8 flex items-center">
+                <div className="bg-gradient-to-r from-purple-600 to-indigo-600 p-3 rounded-lg mr-4">
+                  <i className="fas fa-receipt text-white"></i>
                 </div>
-              </div>
-
-              {/* Card */}
-              <div
-                className={`payment-method border rounded-lg p-4 cursor-pointer transition duration-200 ${
-                  paymentMethod === "card"
-                    ? "border-purple-600 bg-purple-50"
-                    : ""
-                }`}
-                onClick={() => selectPaymentMethod("card")}
-              >
-                <div className="flex items-center">
-                  <input
-                    type="radio"
-                    name="payment"
-                    id="card"
-                    className="custom-radio mr-3"
-                    checked={paymentMethod === "card"}
-                    onChange={() => selectPaymentMethod("card")}
-                  />
-                  <div className="flex items-center mr-auto">
-                    <i className="fas fa-credit-card payment-icon text-2xl text-blue-500 mr-3"></i>
-                    <div>
-                      <label
-                        htmlFor="card"
-                        className="font-medium text-gray-800 cursor-pointer"
-                      >
-                        Credit/Debit Card
-                      </label>
-                      <p className="text-sm text-gray-500">
-                        Pay securely with your card
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex space-x-2">
-                    <i className="fab fa-cc-visa text-gray-400"></i>
-                    <i className="fab fa-cc-mastercard text-gray-400"></i>
-                    <i className="fab fa-cc-amex text-gray-400"></i>
-                  </div>
-                </div>
-
-                {/* Card Form */}
-                {paymentMethod === "card" && (
-                  <div className="mt-4">
-                    <div className="space-y-4">
-                      <div>
-                        <label
-                          htmlFor="card-number"
-                          className="block text-sm font-medium text-gray-700 mb-1"
-                        >
-                          Card Number
-                        </label>
-                        <input
-                          type="text"
-                          id="card-number"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                          placeholder="1234 5678 9012 3456"
-                          value={cardInfo.cardNumber}
-                          onChange={(e) =>
-                            setCardInfo({
-                              ...cardInfo,
-                              cardNumber: e.target.value,
-                            })
-                          }
+                Order Summary
+                <span className="ml-auto text-sm bg-purple-100 text-purple-600 px-3 py-1 rounded-full font-medium">
+                  {orderItems.length} items
+                </span>
+              </h2>
+              {/* Order Items */}
+              <div className="space-y-6 mb-8">
+                {orderItems.map((item, index) => (
+                  <div
+                    key={index}
+                    className="flex justify-between items-start bg-gradient-to-r from-gray-50 to-white border border-gray-200 rounded-xl p-6 hover:shadow-md transition-all duration-200"
+                  >
+                    <div className="flex items-start">
+                      <div className="w-20 h-20 relative rounded-xl overflow-hidden mr-6 shadow-md">
+                        <Image
+                          src={item.image}
+                          alt={item.name}
+                          fill
+                          sizes="80px"
+                          className="object-cover"
                         />
                       </div>
-                      <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <h3 className="font-semibold text-gray-800 text-lg mb-1">
+                          {item.name}
+                        </h3>
+                        <p className="text-gray-600 mb-2">{item.size}</p>
+                        {item.options && item.options.length > 0 && (
+                          <div className="flex flex-wrap gap-1">
+                            {item.options.map((option, i) => (
+                              <span
+                                key={i}
+                                className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-lg font-medium"
+                              >
+                                + {option}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-bold text-lg text-purple-600 mb-1">
+                        ${item.price.toFixed(2)}
+                      </p>
+                      <p className="text-sm bg-gray-100 text-gray-600 px-2 py-1 rounded-lg">
+                        Qty: {item.quantity}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>{" "}
+              {/* Order Notes */}
+              <div className="mb-8">
+                <label
+                  htmlFor="notes"
+                  className="block text-sm font-semibold text-gray-700 mb-3 flex items-center"
+                >
+                  <i className="fas fa-sticky-note mr-2 text-purple-600"></i>
+                  Special Instructions
+                </label>
+                <textarea
+                  id="notes"
+                  rows={3}
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-purple-600 transition-all duration-200 bg-gray-50 focus:bg-white resize-none"
+                  placeholder="Any special requests for your order? (e.g., extra hot, oat milk, etc.)"
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                ></textarea>
+              </div>
+              {/* Promo Code */}
+              <div className="mb-8">
+                <label
+                  htmlFor="promo"
+                  className="block text-sm font-semibold text-gray-700 mb-3 flex items-center"
+                >
+                  <i className="fas fa-ticket-alt mr-2 text-purple-600"></i>
+                  Promo Code
+                </label>
+                <div className="flex rounded-xl overflow-hidden border-2 border-gray-200 focus-within:border-purple-600 transition-colors">
+                  <input
+                    type="text"
+                    id="promo"
+                    className="flex-1 px-4 py-3 bg-gray-50 focus:bg-white focus:outline-none"
+                    placeholder="Enter your promo code"
+                    value={promoCode}
+                    onChange={(e) => setPromoCode(e.target.value)}
+                  />
+                  <button className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-3 hover:from-purple-700 hover:to-indigo-700 transition-all duration-200 font-semibold">
+                    Apply
+                  </button>
+                </div>
+              </div>
+            </div>{" "}
+            {/* Payment Methods */}
+            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
+              <h2 className="text-2xl font-bold text-gray-800 mb-8 flex items-center">
+                <div className="bg-gradient-to-r from-purple-600 to-indigo-600 p-3 rounded-lg mr-4">
+                  <i className="fas fa-credit-card text-white"></i>
+                </div>
+                Payment Method
+              </h2>
+
+              <div className="space-y-6">
+                {/* Cash */}
+                <div
+                  className={`payment-method border-2 rounded-xl p-6 cursor-pointer transition-all duration-300 hover:shadow-md ${
+                    paymentMethod === "cash"
+                      ? "border-purple-600 bg-gradient-to-r from-purple-50 to-indigo-50 shadow-lg"
+                      : "border-gray-200 hover:border-purple-300"
+                  }`}
+                  onClick={() => selectPaymentMethod("cash")}
+                >
+                  <div className="flex items-center">
+                    <input
+                      type="radio"
+                      name="payment"
+                      id="cash"
+                      className="w-5 h-5 text-purple-600 mr-4"
+                      checked={paymentMethod === "cash"}
+                      onChange={() => selectPaymentMethod("cash")}
+                    />
+                    <div className="flex items-center mr-auto">
+                      <div className="bg-green-100 p-3 rounded-lg mr-4">
+                        <i className="fas fa-money-bill-wave text-2xl text-green-600"></i>
+                      </div>
+                      <div>
+                        <label
+                          htmlFor="cash"
+                          className="font-semibold text-gray-800 cursor-pointer text-lg"
+                        >
+                          Cash Payment
+                        </label>
+                        <p className="text-gray-600 mt-1">
+                          Pay with cash when you pick up your order
+                        </p>
+                      </div>
+                    </div>
+                    <div className="bg-green-50 px-3 py-1 rounded-lg">
+                      <span className="text-green-700 text-sm font-medium">
+                        No fees
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                {/* Card */}
+                <div
+                  className={`payment-method border-2 rounded-xl p-6 cursor-pointer transition-all duration-300 hover:shadow-md ${
+                    paymentMethod === "card"
+                      ? "border-purple-600 bg-gradient-to-r from-purple-50 to-indigo-50 shadow-lg"
+                      : "border-gray-200 hover:border-purple-300"
+                  }`}
+                  onClick={() => selectPaymentMethod("card")}
+                >
+                  <div className="flex items-center">
+                    <input
+                      type="radio"
+                      name="payment"
+                      id="card"
+                      className="w-5 h-5 text-purple-600 mr-4"
+                      checked={paymentMethod === "card"}
+                      onChange={() => selectPaymentMethod("card")}
+                    />
+                    <div className="flex items-center mr-auto">
+                      <div className="bg-blue-100 p-3 rounded-lg mr-4">
+                        <i className="fas fa-credit-card text-2xl text-blue-600"></i>
+                      </div>
+                      <div>
+                        <label
+                          htmlFor="card"
+                          className="font-semibold text-gray-800 cursor-pointer text-lg"
+                        >
+                          Credit/Debit Card
+                        </label>
+                        <p className="text-gray-600 mt-1">
+                          Pay securely with your card
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex space-x-3">
+                      <i className="fab fa-cc-visa text-2xl text-blue-600"></i>
+                      <i className="fab fa-cc-mastercard text-2xl text-red-500"></i>
+                      <i className="fab fa-cc-amex text-2xl text-blue-500"></i>
+                    </div>
+                  </div>
+
+                  {/* Card Form */}
+                  {paymentMethod === "card" && (
+                    <div className="mt-6 pt-6 border-t border-gray-200">
+                      <div className="space-y-6">
                         <div>
                           <label
-                            htmlFor="expiry"
-                            className="block text-sm font-medium text-gray-700 mb-1"
+                            htmlFor="card-number"
+                            className="block text-sm font-semibold text-gray-700 mb-2"
                           >
-                            Expiry Date
+                            Card Number
                           </label>
                           <input
                             type="text"
-                            id="expiry"
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                            placeholder="MM/YY"
-                            value={cardInfo.expiryDate}
+                            id="card-number"
+                            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-purple-600 transition-all"
+                            placeholder="1234 5678 9012 3456"
+                            value={cardInfo.cardNumber}
                             onChange={(e) =>
                               setCardInfo({
                                 ...cardInfo,
-                                expiryDate: e.target.value,
+                                cardNumber: e.target.value,
                               })
                             }
                           />
                         </div>
+                        <div className="grid grid-cols-2 gap-6">
+                          <div>
+                            <label
+                              htmlFor="expiry"
+                              className="block text-sm font-semibold text-gray-700 mb-2"
+                            >
+                              Expiry Date
+                            </label>
+                            <input
+                              type="text"
+                              id="expiry"
+                              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-purple-600 transition-all"
+                              placeholder="MM/YY"
+                              value={cardInfo.expiryDate}
+                              onChange={(e) =>
+                                setCardInfo({
+                                  ...cardInfo,
+                                  expiryDate: e.target.value,
+                                })
+                              }
+                            />
+                          </div>
+                          <div>
+                            <label
+                              htmlFor="cvv"
+                              className="block text-sm font-semibold text-gray-700 mb-2"
+                            >
+                              CVV
+                            </label>
+                            <input
+                              type="text"
+                              id="cvv"
+                              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-purple-600 transition-all"
+                              placeholder="123"
+                              value={cardInfo.cvv}
+                              onChange={(e) =>
+                                setCardInfo({
+                                  ...cardInfo,
+                                  cvv: e.target.value,
+                                })
+                              }
+                            />
+                          </div>
+                        </div>
                         <div>
                           <label
-                            htmlFor="cvv"
-                            className="block text-sm font-medium text-gray-700 mb-1"
+                            htmlFor="card-name"
+                            className="block text-sm font-semibold text-gray-700 mb-2"
                           >
-                            CVV
+                            Name on Card
                           </label>
                           <input
                             type="text"
-                            id="cvv"
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                            placeholder="123"
-                            value={cardInfo.cvv}
+                            id="card-name"
+                            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-purple-600 transition-all"
+                            placeholder="John Doe"
+                            value={cardInfo.cardName}
                             onChange={(e) =>
-                              setCardInfo({ ...cardInfo, cvv: e.target.value })
+                              setCardInfo({
+                                ...cardInfo,
+                                cardName: e.target.value,
+                              })
                             }
                           />
                         </div>
                       </div>
+                    </div>
+                  )}
+                </div>{" "}
+                {/* Digital Wallet */}
+                <div
+                  className={`payment-method border-2 rounded-xl p-6 cursor-pointer transition-all duration-300 hover:shadow-md ${
+                    paymentMethod === "digital"
+                      ? "border-purple-600 bg-gradient-to-r from-purple-50 to-indigo-50 shadow-lg"
+                      : "border-gray-200 hover:border-purple-300"
+                  }`}
+                  onClick={() => selectPaymentMethod("digital")}
+                >
+                  <div className="flex items-center">
+                    <input
+                      type="radio"
+                      name="payment"
+                      id="digital"
+                      className="w-5 h-5 text-purple-600 mr-4"
+                      checked={paymentMethod === "digital"}
+                      onChange={() => selectPaymentMethod("digital")}
+                    />
+                    <div className="flex items-center mr-auto">
+                      <div className="bg-purple-100 p-3 rounded-lg mr-4">
+                        <i className="fas fa-mobile-alt text-2xl text-purple-600"></i>
+                      </div>
                       <div>
                         <label
-                          htmlFor="card-name"
-                          className="block text-sm font-medium text-gray-700 mb-1"
+                          htmlFor="digital"
+                          className="font-semibold text-gray-800 cursor-pointer text-lg"
                         >
-                          Name on Card
+                          Digital Wallet
                         </label>
-                        <input
-                          type="text"
-                          id="card-name"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                          placeholder="John Doe"
-                          value={cardInfo.cardName}
-                          onChange={(e) =>
-                            setCardInfo({
-                              ...cardInfo,
-                              cardName: e.target.value,
-                            })
-                          }
-                        />
+                        <p className="text-gray-600 mt-1">
+                          Pay with your mobile wallet
+                        </p>
                       </div>
                     </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Digital Wallet */}
-              <div
-                className={`payment-method border rounded-lg p-4 cursor-pointer transition duration-200 ${
-                  paymentMethod === "digital"
-                    ? "border-purple-600 bg-purple-50"
-                    : ""
-                }`}
-                onClick={() => selectPaymentMethod("digital")}
-              >
-                <div className="flex items-center">
-                  <input
-                    type="radio"
-                    name="payment"
-                    id="digital"
-                    className="custom-radio mr-3"
-                    checked={paymentMethod === "digital"}
-                    onChange={() => selectPaymentMethod("digital")}
-                  />
-                  <div className="flex items-center mr-auto">
-                    <i className="fas fa-mobile-alt payment-icon text-2xl text-purple-500 mr-3"></i>
-                    <div>
-                      <label
-                        htmlFor="digital"
-                        className="font-medium text-gray-800 cursor-pointer"
-                      >
-                        Digital Wallet
-                      </label>
-                      <p className="text-sm text-gray-500">
-                        Pay with your mobile wallet
-                      </p>
+                    <div className="flex space-x-3">
+                      <i className="fab fa-google-pay text-2xl text-blue-500"></i>
+                      <i className="fab fa-apple-pay text-2xl text-gray-800"></i>
+                      <i className="fab fa-paypal text-2xl text-blue-600"></i>
                     </div>
                   </div>
-                  <div className="flex space-x-2">
-                    <i className="fab fa-google-pay text-gray-400"></i>
-                    <i className="fab fa-apple-pay text-gray-400"></i>
-                    <i className="fab fa-paypal text-gray-400"></i>
+
+                  {/* Digital Wallet Options */}
+                  {paymentMethod === "digital" && (
+                    <div className="mt-6 pt-6 border-t border-gray-200">
+                      <div className="space-y-4">
+                        <div className="flex items-center p-4 border-2 border-gray-200 rounded-xl cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-all duration-200">
+                          <div className="bg-blue-100 p-2 rounded-lg mr-4">
+                            <i className="fab fa-google-pay text-2xl text-blue-600"></i>
+                          </div>
+                          <span className="font-semibold text-gray-800">
+                            Google Pay
+                          </span>
+                          <i className="fas fa-chevron-right ml-auto text-gray-400"></i>
+                        </div>
+                        <div className="flex items-center p-4 border-2 border-gray-200 rounded-xl cursor-pointer hover:border-gray-600 hover:bg-gray-50 transition-all duration-200">
+                          <div className="bg-gray-100 p-2 rounded-lg mr-4">
+                            <i className="fab fa-apple-pay text-2xl text-gray-800"></i>
+                          </div>
+                          <span className="font-semibold text-gray-800">
+                            Apple Pay
+                          </span>
+                          <i className="fas fa-chevron-right ml-auto text-gray-400"></i>
+                        </div>
+                        <div className="flex items-center p-4 border-2 border-gray-200 rounded-xl cursor-pointer hover:border-blue-600 hover:bg-blue-50 transition-all duration-200">
+                          <div className="bg-blue-100 p-2 rounded-lg mr-4">
+                            <i className="fab fa-paypal text-2xl text-blue-600"></i>
+                          </div>
+                          <span className="font-semibold text-gray-800">
+                            PayPal
+                          </span>
+                          <i className="fas fa-chevron-right ml-auto text-gray-400"></i>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>{" "}
+          {/* Right Column - Order Total */}
+          <div className="lg:w-1/3">
+            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8 sticky top-6">
+              <h2 className="text-2xl font-bold text-gray-800 mb-8 flex items-center">
+                <div className="bg-gradient-to-r from-purple-600 to-indigo-600 p-3 rounded-lg mr-4">
+                  <i className="fas fa-file-invoice-dollar text-white"></i>
+                </div>
+                Order Total
+              </h2>
+              <div className="bg-gradient-to-r from-gray-50 to-purple-50 rounded-xl p-6 border border-gray-200 mb-8">
+                <div className="space-y-4">
+                  <div className="flex justify-between text-gray-600">
+                    <span>Subtotal</span>
+                    <span className="font-semibold">
+                      ${calculateSubtotal().toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-gray-600">
+                    <span>Tax (8%)</span>
+                    <span className="font-semibold">
+                      ${calculateTax(calculateSubtotal()).toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-gray-600">
+                    <span>Service Fee</span>
+                    <span className="font-semibold">
+                      ${serviceFee.toFixed(2)}
+                    </span>
+                  </div>
+                  {discountAmount > 0 && (
+                    <div className="flex justify-between text-green-600 bg-green-50 px-3 py-2 rounded-lg">
+                      <span className="flex items-center">
+                        <i className="fas fa-tag mr-2"></i>Discount
+                      </span>
+                      <span className="font-semibold">
+                        -${discountAmount.toFixed(2)}
+                      </span>
+                    </div>
+                  )}
+                  <div className="border-t border-gray-300 pt-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-xl font-bold text-gray-800">
+                        Total
+                      </span>
+                      <span className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
+                        ${calculateTotal()}
+                      </span>
+                    </div>
                   </div>
                 </div>
-
-                {/* Digital Wallet Options */}
-                {paymentMethod === "digital" && (
-                  <div className="mt-4">
-                    <div className="space-y-3">
-                      <div className="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
-                        <i className="fab fa-google-pay text-2xl text-blue-500 mr-3"></i>
-                        <span className="font-medium">Google Pay</span>
-                      </div>
-                      <div className="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
-                        <i className="fab fa-apple-pay text-2xl text-black mr-3"></i>
-                        <span className="font-medium">Apple Pay</span>
-                      </div>
-                      <div className="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
-                        <i className="fab fa-paypal text-2xl text-blue-400 mr-3"></i>
-                        <span className="font-medium">PayPal</span>
-                      </div>
-                    </div>
+              </div>
+              <div className="space-y-6 mb-8">
+                <div className="bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-xl p-4">
+                  <div className="flex items-center mb-2">
+                    <i className="fas fa-store text-purple-600 mr-3"></i>
+                    <span className="font-semibold text-purple-800">
+                      Pickup Location
+                    </span>
                   </div>
-                )}
+                  <p className="text-purple-700 ml-6">
+                    Coffee Haven Downtown
+                    <br />
+                    123 Main Street, Suite 100
+                  </p>
+                </div>
+
+                <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4">
+                  <div className="flex items-center mb-2">
+                    <i className="fas fa-clock text-green-600 mr-3"></i>
+                    <span className="font-semibold text-green-800">
+                      Estimated Pickup Time
+                    </span>
+                  </div>
+                  <p className="text-green-700 ml-6 flex items-center">
+                    <span className="font-bold">Today at 3:45 PM</span>
+                    <span className="ml-2 bg-green-200 text-green-800 text-xs px-2 py-1 rounded-full">
+                      15-20 min
+                    </span>
+                  </p>
+                </div>
+              </div>{" "}
+              <div className="flex gap-4 mb-6">
+                <button
+                  className="flex-1 py-4 px-4 rounded-xl font-bold transition-all duration-200 flex items-center justify-center 
+                  border-2 border-purple-600 text-purple-600 hover:bg-purple-50 hover:shadow-md transform hover:-translate-y-0.5"
+                  onClick={() => {
+                    const { prevStepRoute } = getStepInfo(2); // 2 is the current step for PaymentPage
+                    router.push(prevStepRoute);
+                  }}
+                  disabled={isProcessing}
+                >
+                  <i className="fas fa-arrow-left mr-2"></i>
+                  <span>Back</span>
+                </button>
+
+                <button
+                  id="pay-button"
+                  className={`flex-[2] py-4 px-4 rounded-xl font-bold transition-all duration-200 flex items-center justify-center shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 ${
+                    isProcessing
+                      ? "bg-gradient-to-r from-purple-500 to-indigo-500"
+                      : "bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
+                  } text-white`}
+                  onClick={processPayment}
+                  disabled={isProcessing}
+                >
+                  {isProcessing ? (
+                    <>
+                      <i className="fas fa-spinner fa-spin mr-3"></i>
+                      Processing Payment...
+                    </>
+                  ) : (
+                    <>
+                      <i className="fas fa-credit-card mr-3"></i>
+                      <span>Complete Payment</span>
+                      <i className="fas fa-arrow-right ml-3"></i>
+                    </>
+                  )}
+                </button>
               </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Right Column - Order Total */}
-        <div className="lg:w-1/3">
-          <div className="bg-white rounded-lg shadow-md p-6 sticky top-4">
-            <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center">
-              <i className="fas fa-file-invoice-dollar mr-2 text-purple-600"></i>
-              Order Total
-            </h2>
-
-            <div className="space-y-3 mb-6">
-              <div className="flex justify-between">
-                <span className="text-gray-600">Subtotal</span>
-                <span className="font-medium">
-                  ${calculateSubtotal().toFixed(2)}
-                </span>
+              <div className="text-center mb-6">
+                <p className="text-xs text-gray-500">
+                  By placing your order, you agree to our{" "}
+                  <a
+                    href="#"
+                    className="text-purple-600 hover:underline font-medium"
+                  >
+                    Terms of Service
+                  </a>{" "}
+                  and{" "}
+                  <a
+                    href="#"
+                    className="text-purple-600 hover:underline font-medium"
+                  >
+                    Privacy Policy
+                  </a>
+                  .
+                </p>
               </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Tax (8%)</span>
-                <span className="font-medium">
-                  ${calculateTax(calculateSubtotal()).toFixed(2)}
-                </span>
+              <div className="flex justify-center items-center space-x-4 pt-4 border-t border-gray-200">
+                <div className="flex items-center text-green-600">
+                  <i className="fas fa-shield-alt mr-2"></i>
+                  <span className="text-sm font-medium">Secure Payment</span>
+                </div>
+                <div className="flex space-x-3">
+                  <i className="fab fa-cc-visa text-2xl text-blue-600"></i>
+                  <i className="fab fa-cc-mastercard text-2xl text-red-500"></i>
+                  <i className="fab fa-cc-amex text-2xl text-blue-500"></i>
+                  <i className="fab fa-cc-discover text-2xl text-orange-500"></i>
+                </div>
               </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Service Fee</span>
-                <span className="font-medium">${serviceFee.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between border-t pt-3">
-                <span className="text-gray-600">Discount</span>
-                <span className="font-medium text-green-600">
-                  -${discountAmount.toFixed(2)}
-                </span>
-              </div>
-            </div>
-
-            <div className="flex justify-between items-center mb-6 py-3 border-t border-b">
-              <span className="text-lg font-bold text-gray-800">Total</span>
-              <span className="text-xl font-bold text-purple-600">
-                ${calculateTotal()}
-              </span>
-            </div>
-
-            <div className="mb-6">
-              <div className="flex items-center mb-2">
-                <i className="fas fa-store text-purple-600 mr-2"></i>
-                <span className="font-medium">Pickup Location</span>
-              </div>
-              <p className="text-sm text-gray-600 ml-6">
-                Coffee Haven Downtown
-                <br />
-                123 Main Street, Suite 100
-              </p>
-            </div>
-
-            <div className="mb-6">
-              <div className="flex items-center mb-2">
-                <i className="fas fa-clock text-purple-600 mr-2"></i>
-                <span className="font-medium">Estimated Pickup Time</span>
-              </div>
-              <p className="text-sm text-gray-600 ml-6">Today at 3:45 PM</p>
-            </div>
-
-            <div className="flex gap-4">
-              <button
-                className="w-1/3 py-3 px-4 rounded-lg font-bold transition duration-200 flex items-center justify-center 
-                border border-purple-600 text-purple-600 hover:bg-purple-50"
-                onClick={() => {
-                  const { prevStepRoute } = getStepInfo(2); // 2 is the current step for PaymentPage
-                  router.push(prevStepRoute);
-                }}
-                disabled={isProcessing}
-              >
-                <i className="fas fa-arrow-left mr-2"></i>
-                <span>Back to Order</span>
-              </button>
-
-              <button
-                id="pay-button"
-                className={`w-2/3 py-3 px-4 rounded-lg font-bold transition duration-200 flex items-center justify-center ${
-                  isProcessing
-                    ? "bg-purple-500 hover:bg-purple-600"
-                    : "bg-purple-600 hover:bg-purple-700"
-                } text-white`}
-                onClick={processPayment}
-                disabled={isProcessing}
-              >
-                {isProcessing ? (
-                  <>
-                    <i className="fas fa-spinner fa-spin mr-2"></i>
-                    Processing Payment...
-                  </>
-                ) : (
-                  <>
-                    <span>Complete Payment</span>
-                    <i className="fas fa-arrow-right ml-2"></i>
-                  </>
-                )}
-              </button>
-            </div>
-
-            <p className="text-xs text-gray-500 mt-3 text-center">
-              By placing your order, you agree to our{" "}
-              <a href="#" className="text-purple-600 hover:underline">
-                Terms of Service
-              </a>{" "}
-              and{" "}
-              <a href="#" className="text-purple-600 hover:underline">
-                Privacy Policy
-              </a>
-              .
-            </p>
-
-            <div className="mt-4 flex justify-center space-x-4">
-              <i className="fas fa-shield-alt text-purple-600"></i>
-              <i className="fab fa-cc-visa text-gray-400"></i>
-              <i className="fab fa-cc-mastercard text-gray-400"></i>
-              <i className="fab fa-cc-amex text-gray-400"></i>
-              <i className="fab fa-cc-discover text-gray-400"></i>
             </div>
           </div>
         </div>
