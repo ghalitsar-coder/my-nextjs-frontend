@@ -1,5 +1,21 @@
 // Types for Product Detail components
 
+// Backend Product interface (matching Spring Boot entity)
+export interface BackendProduct {
+  productId: number;
+  category: {
+    categoryId: number;
+    name: string;
+    description: string;
+  };
+  name: string;
+  description: string;
+  price: number;
+  stock: number;
+  isAvailable: boolean;
+}
+
+// Frontend Product interface (for display with additional properties)
 export interface Product {
   id: string;
   name: string;
@@ -15,6 +31,12 @@ export interface Product {
   detailedDescription: string[];
   sustainability: string;
   tastingNotes: string[];
+  category?: {
+    categoryId: number;
+    name: string;
+    description: string;
+  };
+  isAvailable?: boolean;
 }
 
 export interface ProductSize {

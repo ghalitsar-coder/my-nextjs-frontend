@@ -1,7 +1,24 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import Link from "next/link";
 
+// Interface matching the backend Product entity
+interface Product {
+  productId: number;
+  category: {
+    categoryId: number;
+    name: string;
+    description: string;
+  };
+  name: string;
+  description: string;
+  price: number;
+  stock: number;
+  isAvailable: boolean;
+}
+
+// Interface for frontend display (with additional properties like image and rating)
 interface MenuItem {
   id: number;
   name: string;
@@ -13,42 +30,91 @@ interface MenuItem {
 }
 
 export default function MenuSection() {
-  const [activeCategory, setActiveCategory] = useState("Hot Coffee");
-
-  const categories = ["Hot Coffee", "Cold Brew", "Espresso", "Tea", "Pastries"];
-
-  const menuItems: MenuItem[] = [
-    {
-      id: 1,
-      name: "Classic Espresso",
-      price: "$3.75",
-      description: "Bold, concentrated coffee shot with rich crema",
-      image:
+  const [activeCategory, setActiveCategory] = useState("All");
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [categories, setCategories] = useState<string[]>(["All"]);
+  // Default coffee images for products that don't have images
+  const getDefaultImage = (categoryName: string): string => {
+    const imageMap: { [key: string]: string } = {
+      Coffee:
         "https://images.unsplash.com/photo-1522992319-0365e5f11656?ixlib=rb-1.2.1&auto=format&fit=crop&w=634&q=80",
-      rating: 4.5,
-      category: "Hot Coffee",
-    },
-    {
-      id: 2,
-      name: "Caramel Macchiato",
-      price: "$4.95",
-      description: "Espresso with vanilla, steamed milk & caramel drizzle",
-      image:
-        "https://images.unsplash.com/photo-1534778101976-6fa2976c6ae1?ixlib=rb-1.2.1&auto=format&fit=crop&w=634&q=80",
-      rating: 5.0,
-      category: "Hot Coffee",
-    },
-    {
-      id: 3,
-      name: "Iced Mocha",
-      price: "$5.25",
-      description: "Chocolate, espresso & milk over ice, topped with cream",
-      image:
+      Tea: "https://images.unsplash.com/photo-1556679343-c7306c1976bc?ixlib=rb-1.2.1&auto=format&fit=crop&w=634&q=80",
+      Pastry:
+        "https://images.unsplash.com/photo-1555507036-ab794f4afe5d?ixlib=rb-1.2.1&auto=format&fit=crop&w=634&q=80",
+      Sandwich:
+        "https://images.unsplash.com/photo-1539252554453-80ab65ce3586?ixlib=rb-1.2.1&auto=format&fit=crop&w=634&q=80",
+      Merchandise:
+        "https://images.unsplash.com/photo-1544787219-7f47ccb76574?ixlib=rb-1.2.1&auto=format&fit=crop&w=634&q=80",
+      // Fallback categories
+      "Hot Coffee":
+        "https://images.unsplash.com/photo-1522992319-0365e5f11656?ixlib=rb-1.2.1&auto=format&fit=crop&w=634&q=80",
+      "Cold Brew":
         "https://images.unsplash.com/photo-1596079890744-c1a0462d1605?ixlib=rb-1.2.1&auto=format&fit=crop&w=634&q=80",
-      rating: 4.5,
-      category: "Cold Brew",
-    },
-  ];
+      Espresso:
+        "https://images.unsplash.com/photo-1534778101976-6fa2976c6ae1?ixlib=rb-1.2.1&auto=format&fit=crop&w=634&q=80",
+    };
+    return (
+      imageMap[categoryName] ||
+      "https://images.unsplash.com/photo-1522992319-0365e5f11656?ixlib=rb-1.2.1&auto=format&fit=crop&w=634&q=80"
+    );
+  };
+  // Convert backend Product to frontend MenuItem
+  const convertToMenuItem = (product: Product): MenuItem => ({
+    id: product.productId,
+    name: product.name,
+    price: formatPrice(product.price),
+    description: product.description || "Delicious coffee crafted with care",
+    image: getDefaultImage(product.category.name),
+    rating: 4.5 + Math.random() * 0.5, // Random rating between 4.5-5.0 for demo
+    category: product.category.name,
+  });
+
+  // Format price based on the currency (assuming Indonesian Rupiah for large numbers)
+  const formatPrice = (price: number): string => {
+    if (price >= 1000) {
+      // Format as Indonesian Rupiah for large numbers
+      return `Rp ${price.toLocaleString("id-ID")}`;
+    } else {
+      // Format as USD for smaller numbers
+      return `$${price.toFixed(2)}`;
+    }
+  };
+
+  // Fetch products from backend
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const response = await fetch(
+          "http://localhost:8080/api/products/available"
+        );
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data: Product[] = await response.json();
+        setProducts(data);
+
+        // Extract unique categories from products
+        const uniqueCategories = Array.from(
+          new Set(data.map((product) => product.category.name))
+        );
+        setCategories(["All", ...uniqueCategories]);
+      } catch (err) {
+        console.error("Error fetching products:", err);
+        setError("Failed to load menu items. Please try again later.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProducts();
+  }, []);
 
   const renderStars = (rating: number) => {
     const stars = [];
@@ -71,10 +137,86 @@ export default function MenuSection() {
     return stars;
   };
 
-  const filteredItems = menuItems.filter((item) =>
-    activeCategory === "Hot Coffee" ? true : item.category === activeCategory
+  // Filter products based on active category
+  const filteredProducts = products.filter(
+    (product) =>
+      activeCategory === "All" || product.category.name === activeCategory
   );
 
+  // Convert filtered products to menu items
+  const menuItems = filteredProducts.map(convertToMenuItem);
+
+  // Loading state
+  if (loading) {
+    return (
+      <section id="menu" className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="display-font text-4xl font-bold mb-4">
+              Our Signature Creations
+            </h2>
+            <div className="w-24 h-1 gradient-bg rounded-full mx-auto animate-gradient"></div>
+            <p className="mt-6 text-gray-600 max-w-2xl mx-auto">
+              Loading our delicious menu items...
+            </p>
+          </div>
+
+          {/* Loading skeleton */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {[1, 2, 3, 4, 5, 6].map((item) => (
+              <div
+                key={item}
+                className="bg-white rounded-xl overflow-hidden shadow-md border border-gray-100 p-5 animate-pulse"
+              >
+                <div className="h-56 rounded-xl bg-gray-200"></div>
+                <div className="pt-5">
+                  <div className="h-6 bg-gray-200 rounded mb-2"></div>
+                  <div className="h-4 bg-gray-200 rounded mb-4"></div>
+                  <div className="flex justify-between items-center">
+                    <div className="h-4 bg-gray-200 rounded w-20"></div>
+                    <div className="h-6 bg-gray-200 rounded-full w-6"></div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <section id="menu" className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="display-font text-4xl font-bold mb-4">
+              Our Signature Creations
+            </h2>
+            <div className="w-24 h-1 gradient-bg rounded-full mx-auto animate-gradient"></div>
+          </div>
+
+          <div className="text-center py-12">
+            <div className="text-red-500 mb-4">
+              <i className="fas fa-exclamation-triangle text-4xl"></i>
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">
+              Oops! Something went wrong
+            </h3>
+            <p className="text-gray-600 mb-6">{error}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="inline-flex items-center px-6 py-3 bg-[#c08450] text-white rounded-lg hover:bg-[#9a6c3e] transition-colors"
+            >
+              <i className="fas fa-redo mr-2"></i>
+              Try Again
+            </button>
+          </div>
+        </div>
+      </section>
+    );
+  }
   return (
     <section id="menu" className="py-20 bg-white">
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
@@ -109,37 +251,73 @@ export default function MenuSection() {
         </div>
 
         {/* Menu Items */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {filteredItems.map((item) => (
-            <div
-              key={item.id}
-              className="menu-item bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl border border-gray-100 p-5"
-            >
-              <div className="h-56 rounded-xl overflow-hidden flex items-center justify-center bg-gray-50">
-                <img
-                  src={item.image}
-                  alt={item.name}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <div className="pt-5">
-                <div className="flex justify-between">
-                  <h3 className="text-xl font-bold">{item.name}</h3>
-                  <span className="text-[#c08450] font-bold">{item.price}</span>
-                </div>
-                <p className="text-gray-600 mt-2 text-sm">{item.description}</p>
-                <div className="flex justify-between items-center mt-4">
-                  <div className="flex space-x-1 text-amber-400">
-                    {renderStars(item.rating)}
-                  </div>
-                  <button className="text-[#c08450] hover:text-[#9a6c3e]">
-                    <i className="fas fa-plus-circle text-xl"></i>
-                  </button>
-                </div>
-              </div>
+        {menuItems.length === 0 ? (
+          <div className="text-center py-12">
+            <div className="text-gray-400 mb-4">
+              <i className="fas fa-coffee text-4xl"></i>
             </div>
-          ))}
-        </div>
+            <h3 className="text-xl font-semibold text-gray-600 mb-2">
+              No items available
+            </h3>
+            <p className="text-gray-500">
+              {activeCategory === "All"
+                ? "No menu items are currently available."
+                : `No items available in the ${activeCategory} category.`}
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {menuItems.map((item) => (
+              <Link
+                key={item.id}
+                href={`/product/${item.id}`}
+                className="block"
+              >
+                <div className="menu-item bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl border border-gray-100 p-5 transition-all duration-300 cursor-pointer">
+                  <div className="h-56 rounded-xl overflow-hidden flex items-center justify-center bg-gray-50">
+                    <img
+                      src={item.image}
+                      alt={item.name}
+                      className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+                      onError={(e) => {
+                        // Fallback image if the image fails to load
+                        e.currentTarget.src =
+                          "https://images.unsplash.com/photo-1522992319-0365e5f11656?ixlib=rb-1.2.1&auto=format&fit=crop&w=634&q=80";
+                      }}
+                    />
+                  </div>
+                  <div className="pt-5">
+                    <div className="flex justify-between">
+                      <h3 className="text-xl font-bold">{item.name}</h3>
+                      <span className="text-[#c08450] font-bold">
+                        {item.price}
+                      </span>
+                    </div>
+                    <p className="text-gray-600 mt-2 text-sm">
+                      {item.description}
+                    </p>
+                    <div className="flex justify-between items-center mt-4">
+                      <div className="flex space-x-1 text-amber-400">
+                        {renderStars(item.rating)}
+                      </div>
+                      <button
+                        className="text-[#c08450] hover:text-[#9a6c3e] transition-colors"
+                        title="Add to cart"
+                        onClick={(e) => {
+                          e.preventDefault(); // Prevent navigation when clicking add to cart
+                          e.stopPropagation();
+                          // TODO: Add to cart functionality
+                        }}
+                      >
+                        <i className="fas fa-plus-circle text-xl"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
 
         <div className="text-center mt-12">
           <a

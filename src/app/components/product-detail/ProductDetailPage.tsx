@@ -7,11 +7,148 @@ import ProductInfo from "./ProductInfo";
 import ProductTabs from "./ProductTabs";
 import RelatedProducts from "./RelatedProducts";
 import Breadcrumb from "./Breadcrumb";
-import { Product, RelatedProduct } from "./types";
+import { Product, RelatedProduct, BackendProduct } from "./types";
 
 interface ProductDetailPageProps {
-  productId?: string; // Optional: can be passed from route or fetched based on context
+  productId?: string;
 }
+
+// Helper functions moved outside component to avoid useEffect dependency issues
+const generateDefaultSizes = (basePrice: number) => [
+  { id: 1, name: "8oz", price: basePrice * 0.85 },
+  { id: 2, name: "12oz", price: basePrice, default: true },
+  { id: 3, name: "16oz", price: basePrice * 1.15 },
+];
+
+const generateDefaultGrindOptions = () => [
+  { id: 1, name: "Whole Bean" },
+  { id: 2, name: "Coarse Grind" },
+  { id: 3, name: "Medium Grind", default: true },
+  { id: 4, name: "Fine Grind" },
+];
+
+const generateDefaultImages = (categoryName: string, productName: string) => [
+  {
+    id: 1,
+    url: getDefaultImage(categoryName),
+    alt: productName,
+  },
+  {
+    id: 2,
+    url: "https://images.unsplash.com/photo-1524350876685-274059332603?ixlib=rb-1.2.1&auto=format&fit=crop&w=634&q=80",
+    alt: "Coffee Beans",
+  },
+  {
+    id: 3,
+    url: "https://images.unsplash.com/photo-1551782450-a2132b4ba21d?ixlib=rb-1.2.1&auto=format&fit=crop&w=634&q=80",
+    alt: "Coffee Farm",
+  },
+  {
+    id: 4,
+    url: "https://images.unsplash.com/photo-1461023058943-07fcbe16d735?ixlib=rb-1.2.1&auto=format&fit=crop&w=634&q=80",
+    alt: "Coffee Preparation",
+  },
+];
+
+const generateDefaultAttributes = (categoryName: string) => {
+  const attributeMap: { [key: string]: { [key: string]: string } } = {
+    Coffee: {
+      origin: "Single Origin",
+      roastLevel: "Medium",
+      process: "Washed",
+      altitude: "1,200-1,800m",
+      varietal: "Arabica",
+      bestFor: "Pour Over, French Press, Espresso",
+    },
+    Tea: {
+      type: "Premium Tea",
+      origin: "High Altitude",
+      process: "Traditional",
+      caffeine: "Moderate",
+      bestFor: "Hot or Iced",
+      steepTime: "3-5 minutes",
+    },
+    Pastry: {
+      type: "Fresh Baked",
+      ingredients: "Premium Quality",
+      texture: "Light & Fluffy",
+      sweetness: "Balanced",
+      bestWith: "Coffee or Tea",
+      freshness: "Daily Baked",
+    },
+  };
+
+  return (
+    attributeMap[categoryName] || {
+      quality: "Premium",
+      origin: "Carefully Selected",
+      preparation: "Artisan Made",
+      bestFor: "Any Time",
+    }
+  );
+};
+
+const generateTastingNotes = (categoryName: string) => {
+  const notesMap: { [key: string]: string[] } = {
+    Coffee: ["Rich", "Smooth", "Aromatic", "Balanced", "Full-bodied"],
+    Tea: ["Delicate", "Refreshing", "Floral", "Crisp", "Soothing"],
+    Pastry: ["Sweet", "Buttery", "Fresh", "Light", "Indulgent"],
+    Sandwich: ["Savory", "Fresh", "Hearty", "Satisfying", "Balanced"],
+    Merchandise: ["Quality", "Durable", "Stylish", "Functional", "Premium"],
+  };
+
+  return (
+    notesMap[categoryName] || ["Quality", "Premium", "Crafted", "Excellence"]
+  );
+};
+
+// Get default image based on category
+const getDefaultImage = (categoryName: string): string => {
+  const imageMap: { [key: string]: string } = {
+    Coffee:
+      "https://images.unsplash.com/photo-1522992319-0365e5f11656?ixlib=rb-1.2.1&auto=format&fit=crop&w=1200&q=80",
+    Tea: "https://images.unsplash.com/photo-1556679343-c7306c1976bc?ixlib=rb-1.2.1&auto=format&fit=crop&w=1200&q=80",
+    Pastry:
+      "https://images.unsplash.com/photo-1555507036-ab794f4afe5d?ixlib=rb-1.2.1&auto=format&fit=crop&w=1200&q=80",
+    Sandwich:
+      "https://images.unsplash.com/photo-1539252554453-80ab65ce3586?ixlib=rb-1.2.1&auto=format&fit=crop&w=1200&q=80",
+    Merchandise:
+      "https://images.unsplash.com/photo-1544787219-7f47ccb76574?ixlib=rb-1.2.1&auto=format&fit=crop&w=1200&q=80",
+  };
+  return imageMap[categoryName] || imageMap.Coffee;
+};
+
+// Helper function to convert backend product to frontend format
+const convertBackendToFrontend = (backendProduct: BackendProduct): Product => {
+  return {
+    id: backendProduct.productId.toString(),
+    name: backendProduct.name,
+    price: backendProduct.price,
+    sizes: generateDefaultSizes(backendProduct.price),
+    grindOptions: generateDefaultGrindOptions(),
+    description:
+      backendProduct.description || "Delicious coffee crafted with care",
+    rating: 4.5 + Math.random() * 0.5, // Random rating for demo
+    reviewCount: Math.floor(Math.random() * 50) + 10, // Random review count
+    images: generateDefaultImages(
+      backendProduct.category.name,
+      backendProduct.name
+    ),
+    stockCount: backendProduct.stock,
+    attributes: generateDefaultAttributes(backendProduct.category.name),
+    detailedDescription: [
+      backendProduct.description ||
+        "Our carefully selected coffee beans are roasted to perfection.",
+      "Each cup delivers a rich, aromatic experience that coffee enthusiasts will appreciate.",
+      "Perfect for any time of day, whether you're starting your morning or enjoying an afternoon break.",
+    ],
+    sustainability:
+      "This coffee comes from our direct trade partnerships with local farmers. We pay fair prices and support community development initiatives.",
+    tastingNotes: generateTastingNotes(backendProduct.category.name),
+    category: backendProduct.category,
+    isAvailable: backendProduct.isAvailable,
+  };
+};
 
 export default function ProductDetailPage({
   productId,
@@ -22,127 +159,217 @@ export default function ProductDetailPage({
   const [error, setError] = useState<string | null>(null);
 
   const router = useRouter();
-
   // Fetch product details
   useEffect(() => {
     const fetchProductData = async () => {
+      if (!productId) {
+        setError("Product ID is required");
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
       try {
-        // In a real implementation, this would be an API call
-        // For now, mock the data
-        setTimeout(() => {
-          setProduct({
-            id: productId || "1",
-            name: "Ethiopian Yirgacheffe",
-            price: 14.5,
-            sizes: [
-              { id: 1, name: "8oz", price: 12.5 },
-              { id: 2, name: "12oz", price: 14.5, default: true },
-              { id: 3, name: "16oz", price: 16.5 },
-            ],
-            grindOptions: [
-              { id: 1, name: "Whole Bean" },
-              { id: 2, name: "Coarse Grind" },
-              { id: 3, name: "Medium Grind" },
-              { id: 4, name: "Fine Grind", default: true },
-            ],
-            description:
-              "A delicate and floral single-origin coffee from the birthplace of coffee. Our Yirgacheffe features bright citrus notes, subtle jasmine aroma, and a clean, tea-like body. Grown at high altitude by smallholder farmers in Ethiopia's Sidamo region.",
-            rating: 4.7,
-            reviewCount: 48,
-            images: [
-              {
-                id: 1,
-                url: "https://images.unsplash.com/photo-1517705008128-361805f42e86?ixlib=rb-1.2.1&auto=format&fit=crop&w=1200&q=80",
-                alt: "Ethiopian Yirgacheffe Coffee",
-              },
-              {
-                id: 2,
-                url: "https://images.unsplash.com/photo-1524350876685-274059332603?ixlib=rb-1.2.1&auto=format&fit=crop&w=634&q=80",
-                alt: "Coffee Beans",
-              },
-              {
-                id: 3,
-                url: "https://images.unsplash.com/photo-1551782450-a2132b4ba21d?ixlib=rb-1.2.1&auto=format&fit=crop&w=634&q=80",
-                alt: "Coffee Farm",
-              },
-              {
-                id: 4,
-                url: "https://images.unsplash.com/photo-1461023058943-07fcbe16d735?ixlib=rb-1.2.1&auto=format&fit=crop&w=634&q=80",
-                alt: "Coffee Preparation",
-              },
-            ],
-            stockCount: 23,
-            attributes: {
-              region: "Yirgacheffe, Ethiopia",
-              altitude: "1,800-2,200m",
-              process: "Washed",
-              varietal: "Heirloom",
-              roastLevel: "Light",
-              bestFor: "Pour Over, Chemex, Aeropress",
-            },
-            detailedDescription: [
-              "Our Ethiopian Yirgacheffe is a quintessential representation of the floral, citrusy coffees that Ethiopia is famous for. Grown by smallholder farmers in the Yirgacheffe region, this coffee undergoes careful wet-processing to accentuate its delicate fruit characteristics while maintaining clarity and balance.",
-              "When brewed, expect a cup bursting with bright notes of bergamot and lemon zest, complemented by a fragrant jasmine-like aroma and a clean, tea-like body. The finish is crisp with a lingering, honeyed sweetness.",
-              "Roasted lighter to preserve its delicate floral notes and vibrant acidity, this coffee is perfect for those who enjoy nuanced, tea-like specialty coffees.",
-            ],
-            sustainability:
-              "This coffee comes from our direct trade partnership with a women's cooperative in Yirgacheffe. We pay 45% above fair trade minimum prices and support community education initiatives.",
-            tastingNotes: [
-              "Citrus",
-              "Jasmine",
-              "Bergamot",
-              "Tea-like",
-              "Bright",
-            ],
-          });
+        // Fetch product from backend
+        const response = await fetch(
+          `http://localhost:8080/api/products/${productId}`
+        );
 
-          setRelatedProducts([
-            {
-              id: "2",
-              name: "Espresso Blend",
-              description: "Dark & Chocolatey",
-              price: 16.0,
-              image:
-                "https://images.unsplash.com/photo-1495474477027-9001d6c9f890?ixlib=rb-1.2.1&auto=format&fit=crop&w=634&q=80",
-              badge: "Best Seller",
-            },
-            {
-              id: "3",
-              name: "Colombian Huila",
-              description: "Sweet & Balanced",
-              price: 15.5,
-              image:
-                "https://images.unsplash.com/photo-1511920170033-f8396924c348?ixlib=rb-1.2.1&auto=format&fit=crop&w=634&q=80",
-            },
-            {
-              id: "4",
-              name: "Guatemalan Antigua",
-              description: "Rich & Complex",
-              price: 17.0,
-              image:
-                "https://images.unsplash.com/photo-1580996877935-e5989a61044e?ixlib=rb-1.2.1&auto=format&fit=crop&w=634&q=80",
-              badge: "New Arrival",
-            },
-            {
-              id: "5",
-              name: "Costa Rican Tarrazu",
-              description: "Bright & Juicy",
-              price: 16.25,
-              image:
-                "https://images.unsplash.com/photo-1580596446198-7ec96685b0a4?ixlib=rb-1.2.1&auto=format&fit=crop&w=634&q=80",
-            },
-          ]);
+        if (!response.ok) {
+          if (response.status === 404) {
+            setError("Product not found");
+          } else {
+            setError("Failed to load product details");
+          }
           setLoading(false);
-        }, 500); // Simulate API delay
-      } catch (err) {
-        setError("Failed to load product. Please try again.");
+          return;
+        }
+
+        const backendProduct: BackendProduct = await response.json();
+
+        // Convert backend product to frontend format
+        const convertedProduct: Product =
+          convertBackendToFrontend(backendProduct);
+        setProduct(convertedProduct); // Fetch related products (same category, excluding current product)
+        const relatedResponse = await fetch(
+          "http://localhost:8080/api/products/available"
+        );
+        if (relatedResponse.ok) {
+          const allProducts: BackendProduct[] = await relatedResponse.json();
+          const related = allProducts
+            .filter(
+              (p) =>
+                p.category.name === backendProduct.category.name &&
+                p.productId !== backendProduct.productId
+            )
+            .slice(0, 4) // Limit to 4 related products
+            .map((p) => ({
+              id: p.productId.toString(),
+              name: p.name,
+              description:
+                p.description || "Delicious coffee crafted with care",
+              price: p.price,
+              image: getDefaultImage(p.category.name),
+            }));
+          setRelatedProducts(related);
+        }
+      } catch (error) {
+        console.error("Error fetching product:", error);
+        setError("Failed to load product details. Please try again later.");
+      } finally {
         setLoading(false);
       }
     };
 
     fetchProductData();
   }, [productId]);
+
+  // Helper function to convert backend product to frontend format
+  const convertBackendToFrontend = (
+    backendProduct: BackendProduct
+  ): Product => {
+    return {
+      id: backendProduct.productId.toString(),
+      name: backendProduct.name,
+      price: backendProduct.price,
+      sizes: generateDefaultSizes(backendProduct.price),
+      grindOptions: generateDefaultGrindOptions(),
+      description:
+        backendProduct.description || "Delicious coffee crafted with care",
+      rating: 4.5 + Math.random() * 0.5, // Random rating for demo
+      reviewCount: Math.floor(Math.random() * 50) + 10, // Random review count
+      images: generateDefaultImages(
+        backendProduct.category.name,
+        backendProduct.name
+      ),
+      stockCount: backendProduct.stock,
+      attributes: generateDefaultAttributes(backendProduct.category.name),
+      detailedDescription: [
+        backendProduct.description ||
+          "Our carefully selected coffee beans are roasted to perfection.",
+        "Each cup delivers a rich, aromatic experience that coffee enthusiasts will appreciate.",
+        "Perfect for any time of day, whether you're starting your morning or enjoying an afternoon break.",
+      ],
+      sustainability:
+        "This coffee comes from our direct trade partnerships with local farmers. We pay fair prices and support community development initiatives.",
+      tastingNotes: generateTastingNotes(backendProduct.category.name),
+      category: backendProduct.category,
+      isAvailable: backendProduct.isAvailable,
+    };
+  };
+
+  // Helper functions to generate default values
+  const generateDefaultSizes = (basePrice: number) => [
+    { id: 1, name: "8oz", price: basePrice * 0.85 },
+    { id: 2, name: "12oz", price: basePrice, default: true },
+    { id: 3, name: "16oz", price: basePrice * 1.15 },
+  ];
+
+  const generateDefaultGrindOptions = () => [
+    { id: 1, name: "Whole Bean" },
+    { id: 2, name: "Coarse Grind" },
+    { id: 3, name: "Medium Grind", default: true },
+    { id: 4, name: "Fine Grind" },
+  ];
+
+  const generateDefaultImages = (categoryName: string, productName: string) => [
+    {
+      id: 1,
+      url: getDefaultImage(categoryName),
+      alt: productName,
+    },
+    {
+      id: 2,
+      url: "https://images.unsplash.com/photo-1524350876685-274059332603?ixlib=rb-1.2.1&auto=format&fit=crop&w=634&q=80",
+      alt: "Coffee Beans",
+    },
+    {
+      id: 3,
+      url: "https://images.unsplash.com/photo-1551782450-a2132b4ba21d?ixlib=rb-1.2.1&auto=format&fit=crop&w=634&q=80",
+      alt: "Coffee Farm",
+    },
+    {
+      id: 4,
+      url: "https://images.unsplash.com/photo-1461023058943-07fcbe16d735?ixlib=rb-1.2.1&auto=format&fit=crop&w=634&q=80",
+      alt: "Coffee Preparation",
+    },
+  ];
+
+  const generateDefaultAttributes = (categoryName: string) => {
+    const attributeMap: { [key: string]: any } = {
+      Coffee: {
+        origin: "Single Origin",
+        roastLevel: "Medium",
+        process: "Washed",
+        altitude: "1,200-1,800m",
+        varietal: "Arabica",
+        bestFor: "Pour Over, French Press, Espresso",
+      },
+      Tea: {
+        type: "Premium Tea",
+        origin: "High Altitude",
+        process: "Traditional",
+        caffeine: "Moderate",
+        bestFor: "Hot or Iced",
+        steepTime: "3-5 minutes",
+      },
+      Pastry: {
+        type: "Fresh Baked",
+        ingredients: "Premium Quality",
+        texture: "Light & Fluffy",
+        sweetness: "Balanced",
+        bestWith: "Coffee or Tea",
+        freshness: "Daily Baked",
+      },
+    };
+
+    return (
+      attributeMap[categoryName] || {
+        quality: "Premium",
+        origin: "Carefully Selected",
+        preparation: "Artisan Made",
+        bestFor: "Any Time",
+      }
+    );
+  };
+
+  const generateTastingNotes = (categoryName: string) => {
+    const notesMap: { [key: string]: string[] } = {
+      Coffee: ["Rich", "Smooth", "Aromatic", "Balanced", "Full-bodied"],
+      Tea: ["Delicate", "Refreshing", "Floral", "Crisp", "Soothing"],
+      Pastry: ["Sweet", "Buttery", "Fresh", "Light", "Indulgent"],
+      Sandwich: ["Savory", "Fresh", "Hearty", "Satisfying", "Balanced"],
+      Merchandise: ["Quality", "Durable", "Stylish", "Functional", "Premium"],
+    };
+
+    return (
+      notesMap[categoryName] || ["Quality", "Premium", "Crafted", "Excellence"]
+    );
+  };
+
+  // Get default image based on category
+  const getDefaultImage = (categoryName: string): string => {
+    const imageMap: { [key: string]: string } = {
+      Coffee:
+        "https://images.unsplash.com/photo-1522992319-0365e5f11656?ixlib=rb-1.2.1&auto=format&fit=crop&w=1200&q=80",
+      Tea: "https://images.unsplash.com/photo-1556679343-c7306c1976bc?ixlib=rb-1.2.1&auto=format&fit=crop&w=1200&q=80",
+      Pastry:
+        "https://images.unsplash.com/photo-1555507036-ab794f4afe5d?ixlib=rb-1.2.1&auto=format&fit=crop&w=1200&q=80",
+      Sandwich:
+        "https://images.unsplash.com/photo-1539252554453-80ab65ce3586?ixlib=rb-1.2.1&auto=format&fit=crop&w=1200&q=80",
+      Merchandise:
+        "https://images.unsplash.com/photo-1544787219-7f47ccb76574?ixlib=rb-1.2.1&auto=format&fit=crop&w=1200&q=80",
+    };
+    return imageMap[categoryName] || imageMap.Coffee;
+  };
+  // Format price based on the currency (same as MenuSection)
+  const formatPrice = (price: number): string => {
+    if (price >= 1000) {
+      return `Rp ${price.toLocaleString("id-ID")}`;
+    } else {
+      return `$${price.toFixed(2)}`;
+    }
+  };
 
   if (loading) {
     return (
