@@ -1,10 +1,10 @@
 "use client";
 
-import Header from "../components/coffee-list/Header";
-import HeroSection from "../components/coffee-list/HeroSection";
-import MainContent from "../components/coffee-list/MainContent";
-import LoyaltyBanner from "../components/coffee-list/LoyaltyBanner";
-import Footer from "../components/coffee-list/Footer";
+import Header from "@/app/components/coffee-list/Header";
+import HeroSection from "@/app/components/coffee-list/HeroSection";
+import MainContent from "@/app/components/coffee-list/MainContent";
+import LoyaltyBanner from "@/app/components/coffee-list/LoyaltyBanner";
+import Footer from "@/app/components/coffee-list/Footer";
 import { useState } from "react";
 
 // Define a type for a product customization option

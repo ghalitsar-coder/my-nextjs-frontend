@@ -74,14 +74,7 @@ export default function PaymentPage() {
       document.body.removeChild(script);
     };
   }, []);
-
-  // Using shared steps configuration from StepsConfig
-  const [cardInfo, setCardInfo] = useState({
-    cardNumber: "",
-    expiryDate: "",
-    cvv: "",
-    cardName: "",
-  }); // Convert cart items to order items format
+  // Using shared steps configuration from StepsConfig// Convert cart items to order items format
   const orderItems = items.map((item) => ({
     id: item.id, // Add id field for backend
     name: item.name,
@@ -115,14 +108,18 @@ export default function PaymentPage() {
     const tax = calculateTax(subtotal);
     return (subtotal + tax + serviceFee - discountAmount).toFixed(2);
   };
-
   // Create Midtrans transaction
   const createMidtransTransaction = async () => {
     try {
+      // Calculate gross amount as integer to match with item_details
+      const itemsTotal = orderItems.reduce((sum, item) => {
+        return sum + (Math.round(item.price) * item.quantity);
+      }, 0);
+
       const orderData = {
         transaction_details: {
           order_id: `ORDER-${Date.now()}`,
-          gross_amount: Math.round(parseFloat(calculateTotal()) * 100) / 100,
+          gross_amount: itemsTotal, // Use exact integer sum of items
         },
         customer_details: {
           first_name: "Customer",
@@ -131,7 +128,7 @@ export default function PaymentPage() {
         },
         item_details: orderItems.map((item) => ({
           id: item.name.replace(/\s/g, "_").toLowerCase(),
-          price: item.price,
+          price: Math.round(item.price), // Ensure price is integer
           quantity: item.quantity,
           name: item.name,
         })),
@@ -546,8 +543,7 @@ export default function PaymentPage() {
                     <div className="flex items-center mr-auto">
                       <div className="bg-blue-100 p-3 rounded-lg mr-4">
                         <i className="fas fa-credit-card text-2xl text-blue-600"></i>
-                      </div>
-                      <div>
+                      </div>                      <div>
                         <label
                           htmlFor="card"
                           className="font-semibold text-gray-800 cursor-pointer text-lg"
@@ -555,7 +551,7 @@ export default function PaymentPage() {
                           Credit/Debit Card
                         </label>
                         <p className="text-gray-600 mt-1">
-                          Pay securely with your card
+                          Secure payment via Midtrans - card details will be entered in the next step
                         </p>
                       </div>
                     </div>
@@ -564,97 +560,22 @@ export default function PaymentPage() {
                       <i className="fab fa-cc-mastercard text-2xl text-red-500"></i>
                       <i className="fab fa-cc-amex text-2xl text-blue-500"></i>
                     </div>
-                  </div>
-
-                  {/* Card Form */}
+                  </div>                  {/* Card Info Note - No Form Needed */}
                   {paymentMethod === "card" && (
                     <div className="mt-6 pt-6 border-t border-gray-200">
-                      <div className="space-y-6">
-                        <div>
-                          <label
-                            htmlFor="card-number"
-                            className="block text-sm font-semibold text-gray-700 mb-2"
-                          >
-                            Card Number
-                          </label>
-                          <input
-                            type="text"
-                            id="card-number"
-                            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-purple-600 transition-all"
-                            placeholder="1234 5678 9012 3456"
-                            value={cardInfo.cardNumber}
-                            onChange={(e) =>
-                              setCardInfo({
-                                ...cardInfo,
-                                cardNumber: e.target.value,
-                              })
-                            }
-                          />
-                        </div>
-                        <div className="grid grid-cols-2 gap-6">
-                          <div>
-                            <label
-                              htmlFor="expiry"
-                              className="block text-sm font-semibold text-gray-700 mb-2"
-                            >
-                              Expiry Date
-                            </label>
-                            <input
-                              type="text"
-                              id="expiry"
-                              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-purple-600 transition-all"
-                              placeholder="MM/YY"
-                              value={cardInfo.expiryDate}
-                              onChange={(e) =>
-                                setCardInfo({
-                                  ...cardInfo,
-                                  expiryDate: e.target.value,
-                                })
-                              }
-                            />
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <div className="flex items-start">
+                          <div className="bg-blue-100 p-2 rounded-lg mr-3">
+                            <i className="fas fa-info-circle text-blue-600"></i>
                           </div>
                           <div>
-                            <label
-                              htmlFor="cvv"
-                              className="block text-sm font-semibold text-gray-700 mb-2"
-                            >
-                              CVV
-                            </label>
-                            <input
-                              type="text"
-                              id="cvv"
-                              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-purple-600 transition-all"
-                              placeholder="123"
-                              value={cardInfo.cvv}
-                              onChange={(e) =>
-                                setCardInfo({
-                                  ...cardInfo,
-                                  cvv: e.target.value,
-                                })
-                              }
-                            />
+                            <h4 className="font-semibold text-blue-800 mb-1">
+                              Secure Payment Process
+                            </h4>
+                            <p className="text-blue-700 text-sm leading-relaxed">
+                              After clicking "Complete Payment", you'll be redirected to Midtrans secure payment page where you can safely enter your card details. Your information is protected with bank-level security.
+                            </p>
                           </div>
-                        </div>
-                        <div>
-                          <label
-                            htmlFor="card-name"
-                            className="block text-sm font-semibold text-gray-700 mb-2"
-                          >
-                            Name on Card
-                          </label>
-                          <input
-                            type="text"
-                            id="card-name"
-                            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-purple-600 transition-all"
-                            placeholder="John Doe"
-                            value={cardInfo.cardName}
-                            onChange={(e) =>
-                              setCardInfo({
-                                ...cardInfo,
-                                cardName: e.target.value,
-                              })
-                            }
-                          />
                         </div>
                       </div>
                     </div>
