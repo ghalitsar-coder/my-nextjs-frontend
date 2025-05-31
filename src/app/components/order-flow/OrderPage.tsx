@@ -279,7 +279,8 @@ export default function OrderPage() {
                 <div className="flex items-center space-x-3">
                   <label className="text-sm font-medium text-gray-600">
                     Filter:
-                  </label>                  <select
+                  </label>{" "}
+                  <select
                     className="text-sm border-2 border-gray-200 rounded-xl px-4 py-2 focus:ring-2 focus:ring-purple-600 focus:border-purple-600 bg-white"
                     value={filter}
                     onChange={(e) => setFilter(e.target.value)}
@@ -291,7 +292,8 @@ export default function OrderPage() {
                     ))}
                   </select>
                 </div>
-              </div>            </div>
+              </div>{" "}
+            </div>
 
             {/* Loading State */}
             {loading && (
@@ -329,89 +331,90 @@ export default function OrderPage() {
             {/* Menu Categories */}
             {!loading && !error && (
               <div className="space-y-10">
-              {Object.entries(itemsByCategory).map(
-                ([category, categoryItems]) => (
-                  <div
-                    key={category}
-                    className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6"
-                  >
-                    <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center">
-                      <div className="bg-gradient-to-r from-purple-600 to-indigo-600 p-3 rounded-lg mr-4">
-                        <i
-                          className={`fas fa-${
-                            category === "Coffee" ? "coffee" : "bread-slice"
-                          } text-white`}
-                        ></i>
-                      </div>
-                      {category}
-                      <span className="ml-auto text-sm bg-purple-100 text-purple-600 px-3 py-1 rounded-full font-medium">
-                        {categoryItems.length} items
-                      </span>
-                    </h2>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                      {categoryItems.map((item) => (
-                        <div
-                          key={item.id}
-                          className="group bg-gradient-to-br from-white to-gray-50 rounded-xl shadow-md hover:shadow-xl border border-gray-100 p-6 transition-all duration-300 cursor-pointer hover:-translate-y-1"
-                          onClick={() =>
-                            addToCartFromMenu(item.id, item.name, item.price)
-                          }
-                        >
-                          <div className="flex justify-between items-start mb-4">
-                            <h3 className="font-semibold text-gray-800 text-lg group-hover:text-purple-600 transition-colors">
-                              {item.name}
-                            </h3>
-                            <span className="text-purple-600 font-bold text-lg bg-purple-50 px-3 py-1 rounded-lg">
-                              ${item.price.toFixed(2)}
-                            </span>
-                          </div>
-                          <p className="text-gray-600 mb-4 leading-relaxed">
-                            {item.description}
-                          </p>{" "}
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center text-sm text-gray-500 space-x-4">
-                              <span className="flex items-center bg-green-50 px-2 py-1 rounded-lg">
-                                <i className="fas fa-box text-green-500 mr-1"></i>
-                                Stock: {item.stock}
-                              </span>
-                              <span className="flex items-center bg-blue-50 px-2 py-1 rounded-lg">
-                                <i className="fas fa-tag text-blue-600 mr-1"></i>
-                                {item.category}
-                              </span>
-                            </div>
-                            <div className="bg-purple-600 text-white p-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity">
-                              <i className="fas fa-plus"></i>
-                            </div>
-                          </div>
+                {Object.entries(itemsByCategory).map(
+                  ([category, categoryItems]) => (
+                    <div
+                      key={category}
+                      className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6"
+                    >
+                      <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center">
+                        <div className="bg-gradient-to-r from-purple-600 to-indigo-600 p-3 rounded-lg mr-4">
+                          <i
+                            className={`fas fa-${
+                              category === "Coffee" ? "coffee" : "bread-slice"
+                            } text-white`}
+                          ></i>
                         </div>
-                      ))}
+                        {category}
+                        <span className="ml-auto text-sm bg-purple-100 text-purple-600 px-3 py-1 rounded-full font-medium">
+                          {categoryItems.length} items
+                        </span>
+                      </h2>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        {categoryItems.map((item) => (
+                          <div
+                            key={item.id}
+                            className="group bg-gradient-to-br from-white to-gray-50 rounded-xl shadow-md hover:shadow-xl border border-gray-100 p-6 transition-all duration-300 cursor-pointer hover:-translate-y-1"
+                            onClick={() =>
+                              addToCartFromMenu(item.id, item.name, item.price)
+                            }
+                          >
+                            <div className="flex justify-between items-start mb-4">
+                              <h3 className="font-semibold text-gray-800 text-lg group-hover:text-purple-600 transition-colors">
+                                {item.name}
+                              </h3>
+                              <span className="text-purple-600 font-bold text-lg bg-purple-50 px-3 py-1 rounded-lg">
+                                ${item.price.toFixed(2)}
+                              </span>
+                            </div>
+                            <p className="text-gray-600 mb-4 leading-relaxed">
+                              {item.description}
+                            </p>{" "}
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center text-sm text-gray-500 space-x-4">
+                                <span className="flex items-center bg-green-50 px-2 py-1 rounded-lg">
+                                  <i className="fas fa-box text-green-500 mr-1"></i>
+                                  Stock: {item.stock}
+                                </span>
+                                <span className="flex items-center bg-blue-50 px-2 py-1 rounded-lg">
+                                  <i className="fas fa-tag text-blue-600 mr-1"></i>
+                                  {item.category}
+                                </span>
+                              </div>
+                              <div className="bg-purple-600 text-white p-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                                <i className="fas fa-plus"></i>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )
-              )}
+                  )
+                )}
 
-              {Object.keys(itemsByCategory).length === 0 && (
-                <div className="text-center py-16 bg-white rounded-2xl shadow-lg border border-gray-100">
-                  <div className="bg-gray-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <i className="fas fa-search text-gray-400 text-2xl"></i>
+                {Object.keys(itemsByCategory).length === 0 && (
+                  <div className="text-center py-16 bg-white rounded-2xl shadow-lg border border-gray-100">
+                    <div className="bg-gray-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <i className="fas fa-search text-gray-400 text-2xl"></i>
+                    </div>
+                    <h3 className="text-xl font-semibold text-gray-600 mb-2">
+                      No items found
+                    </h3>
+                    <p className="text-gray-500 mb-4">
+                      Try adjusting your search or filter criteria
+                    </p>
+                    <button
+                      className="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition-colors"
+                      onClick={() => {
+                        setSearchTerm("");
+                        setFilter("All Items");
+                      }}
+                    >
+                      Clear filters
+                    </button>
                   </div>
-                  <h3 className="text-xl font-semibold text-gray-600 mb-2">
-                    No items found
-                  </h3>
-                  <p className="text-gray-500 mb-4">
-                    Try adjusting your search or filter criteria
-                  </p>
-                  <button
-                    className="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition-colors"
-                    onClick={() => {
-                      setSearchTerm("");
-                      setFilter("All Items");
-                    }}                  >
-                    Clear filters
-                  </button>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
             )}
           </div>
 

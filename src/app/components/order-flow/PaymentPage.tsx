@@ -5,67 +5,100 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import ProgressSteps from "./ProgressSteps";
 import { ORDER_FLOW_STEPS, getStepInfo } from "./StepsConfig";
+import { useCartStore } from "@/store/cart-store";
 
 // Define payment method type
 type PaymentMethod = "cash" | "card" | "digital";
 
+// Midtrans payment result interface
+interface MidtransPaymentResult {
+  order_id: string;
+  transaction_id: string;
+  payment_type: string;
+  transaction_status: string;
+  fraud_status?: string;
+  status_message?: string;
+  transaction_time?: string;
+}
+
+// Midtrans configuration
+declare global {
+  interface Window {
+    snap: {
+      pay: (
+        token: string,
+        options: {
+          onSuccess: (result: MidtransPaymentResult) => void;
+          onPending: (result: MidtransPaymentResult) => void;
+          onError: (result: MidtransPaymentResult) => void;
+          onClose: () => void;
+        }
+      ) => void;
+    };
+  }
+}
+
 export default function PaymentPage() {
   const router = useRouter();
+  const { items, totalPrice, clearCart } = useCartStore();
   const [discountAmount, setDiscountAmount] = useState(0);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
   const [isProcessing, setIsProcessing] = useState(false);
   const [notes, setNotes] = useState("");
   const [promoCode, setPromoCode] = useState("");
+
+  // Load discount from localStorage
+  useEffect(() => {
+    const savedDiscount = localStorage.getItem("coffee-discount");
+    if (savedDiscount) {
+      const parsedDiscount = parseFloat(savedDiscount);
+      if (parsedDiscount > 0) {
+        setDiscountAmount(parsedDiscount);
+      }
+    }
+  }, []);
+
+  // Load Midtrans Snap script
+  useEffect(() => {
+    const snapScript = "https://app.sandbox.midtrans.com/snap/snap.js";
+    const clientKey = process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY;
+
+    const script = document.createElement("script");
+    script.src = snapScript;
+    script.setAttribute("data-client-key", clientKey || "");
+    script.async = true;
+
+    document.body.appendChild(script);
+
+    return () => {
+      document.body.removeChild(script);
+    };
+  }, []);
+
   // Using shared steps configuration from StepsConfig
   const [cardInfo, setCardInfo] = useState({
     cardNumber: "",
     expiryDate: "",
     cvv: "",
     cardName: "",
-  });
-
-  // Sample order items (would be replaced by actual cart items)
-  const orderItems = [
-    {
-      name: "Cappuccino",
-      image:
-        "https://images.unsplash.com/photo-1517701550928-30cf4ba1dba5?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=200&q=80",
-      size: "Medium, Hot",
-      options: ["Extra Shot"],
-      price: 4.5,
-      quantity: 1,
-    },
-    {
-      name: "Latte",
-      image:
-        "https://images.unsplash.com/photo-1568649929103-28ffbefaca1e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=200&q=80",
-      size: "Large, Iced",
-      options: ["Vanilla Syrup", "Almond Milk"],
-      price: 5.75,
-      quantity: 2,
-    },
-    {
-      name: "Butter Croissant",
-      image:
-        "https://images.unsplash.com/photo-1551024506-0bccd828d307?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=200&q=80",
-      size: "Regular",
-      options: [],
-      price: 3.25,
-      quantity: 1,
-    },
-  ];
+  }); // Convert cart items to order items format
+  const orderItems = items.map((item) => ({
+    id: item.id, // Add id field for backend
+    name: item.name,
+    image: item.image,
+    size: "Regular", // Default size since cart doesn't store size info
+    options: [], // Could be extended to include customizations
+    price: item.price,
+    quantity: item.quantity,
+  }));
 
   // Select payment method
   const selectPaymentMethod = (method: PaymentMethod) => {
     setPaymentMethod(method);
   };
-
   // Calculate subtotal
   const calculateSubtotal = () => {
-    return orderItems.reduce(
-      (sum, item) => sum + item.price * item.quantity,
-      0
-    );
+    return totalPrice; // Use totalPrice from cart store
   };
 
   // Calculate tax (8%)
@@ -83,33 +116,220 @@ export default function PaymentPage() {
     return (subtotal + tax + serviceFee - discountAmount).toFixed(2);
   };
 
-  // Process payment
-  const processPayment = () => {
-    setIsProcessing(true);
-
-    // Simulate payment processing
-    setTimeout(() => {
-      // Save completed order info to localStorage
-      const orderInfo = {
-        items: orderItems,
-        subtotal: calculateSubtotal(),
-        tax: calculateTax(calculateSubtotal()),
-        discount: discountAmount,
-        serviceFee: serviceFee,
-        total: calculateTotal(),
-        paymentMethod: paymentMethod,
-        notes: notes,
-        orderNumber: `COFFEE-${new Date().getFullYear()}-${Math.floor(
-          1000 + Math.random() * 9000
-        )}`,
-        orderDate: new Date().toISOString(),
+  // Create Midtrans transaction
+  const createMidtransTransaction = async () => {
+    try {
+      const orderData = {
+        transaction_details: {
+          order_id: `ORDER-${Date.now()}`,
+          gross_amount: Math.round(parseFloat(calculateTotal()) * 100) / 100,
+        },
+        customer_details: {
+          first_name: "Customer",
+          email: "customer@example.com",
+          phone: "08123456789",
+        },
+        item_details: orderItems.map((item) => ({
+          id: item.name.replace(/\s/g, "_").toLowerCase(),
+          price: item.price,
+          quantity: item.quantity,
+          name: item.name,
+        })),
       };
 
+      const response = await fetch("/api/midtrans/create-transaction", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(orderData),
+      });
+
+      const result = await response.json();
+      return result.token;
+    } catch (error) {
+      console.error("Error creating Midtrans transaction:", error);
+      throw error;
+    }
+  };
+  // Process payment
+  const processPayment = async () => {
+    if (items.length === 0) {
+      alert("Your cart is empty. Please add items before checkout.");
+      return;
+    }
+
+    setIsProcessing(true);
+
+    try {
+      if (paymentMethod === "cash") {
+        // For cash payment, save order directly and redirect
+        await saveCashOrder();
+      } else if (paymentMethod === "digital") {
+        // For digital payment, use Midtrans
+        await processMidtransPayment();
+      } else if (paymentMethod === "card") {
+        // For card payment, also use Midtrans
+        await processMidtransPayment();
+      }
+    } catch (error) {
+      console.error("Payment processing error:", error);
+      alert("Payment failed. Please try again.");
+      setIsProcessing(false);
+    }
+  };
+
+  // Process cash payment
+  const saveCashOrder = async () => {
+    const orderInfo = {
+      items: orderItems,
+      subtotal: calculateSubtotal(),
+      tax: calculateTax(calculateSubtotal()),
+      discount: discountAmount,
+      serviceFee: serviceFee,
+      total: calculateTotal(),
+      paymentMethod: paymentMethod,
+      notes: notes,
+      orderNumber: `COFFEE-${new Date().getFullYear()}-${Math.floor(
+        1000 + Math.random() * 9000
+      )}`,
+      orderDate: new Date().toISOString(),
+      paymentStatus: "pending", // Cash payment is pending until pickup
+    }; // Save to backend
+    try {
+      const response = await fetch("/api/orders", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          orderItems: orderItems.map((item) => ({
+            id: item.id,
+            quantity: item.quantity,
+          })),
+          totalAmount: parseFloat(calculateTotal()),
+          paymentMethod: paymentMethod,
+          paymentStatus: "pending",
+          notes: notes,
+        }),
+      });
+
+      if (response.ok) {
+        localStorage.setItem(
+          "coffee-completed-order",
+          JSON.stringify(orderInfo)
+        );
+        clearCart(); // Clear cart after successful order
+        const { nextStepRoute } = getStepInfo(2);
+        router.push(nextStepRoute);
+      } else {
+        throw new Error("Failed to save order");
+      }
+    } catch (error) {
+      console.error("Error saving cash order:", error);
+      // Fallback to localStorage for now
       localStorage.setItem("coffee-completed-order", JSON.stringify(orderInfo));
-      // Navigate to completion page using our StepsConfig helper
-      const { nextStepRoute } = getStepInfo(2); // 2 is the current step for PaymentPage
+      clearCart();
+      const { nextStepRoute } = getStepInfo(2);
       router.push(nextStepRoute);
-    }, 2000);
+    }
+  };
+
+  // Process Midtrans payment
+  const processMidtransPayment = async () => {
+    try {
+      const token = await createMidtransTransaction();
+
+      if (!window.snap) {
+        throw new Error("Midtrans Snap not loaded");
+      }
+      window.snap.pay(token, {
+        onSuccess: async (result: MidtransPaymentResult) => {
+          console.log("Payment success:", result);
+          await handlePaymentSuccess(result);
+        },
+        onPending: (result: MidtransPaymentResult) => {
+          console.log("Payment pending:", result);
+          alert("Payment is pending. Please complete your payment.");
+          setIsProcessing(false);
+        },
+        onError: (result: MidtransPaymentResult) => {
+          console.error("Payment error:", result);
+          alert("Payment failed. Please try again.");
+          setIsProcessing(false);
+        },
+        onClose: () => {
+          console.log("Payment popup closed");
+          setIsProcessing(false);
+        },
+      });
+    } catch (error) {
+      console.error("Midtrans payment error:", error);
+      throw error;
+    }
+  };
+  // Handle successful payment
+  const handlePaymentSuccess = async (paymentResult: MidtransPaymentResult) => {
+    const orderInfo = {
+      items: orderItems,
+      subtotal: calculateSubtotal(),
+      tax: calculateTax(calculateSubtotal()),
+      discount: discountAmount,
+      serviceFee: serviceFee,
+      total: calculateTotal(),
+      paymentMethod: paymentMethod,
+      notes: notes,
+      orderNumber:
+        paymentResult.order_id ||
+        `COFFEE-${new Date().getFullYear()}-${Math.floor(
+          1000 + Math.random() * 9000
+        )}`,
+      orderDate: new Date().toISOString(),
+      paymentStatus: "completed",
+      transactionId: paymentResult.transaction_id,
+      paymentType: paymentResult.payment_type,
+    };
+
+    try {
+      // Save successful payment to backend
+      const response = await fetch("/api/orders", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          orderItems: orderItems.map((item) => ({
+            id: item.id,
+            quantity: item.quantity,
+          })),
+          totalAmount: parseFloat(calculateTotal()),
+          paymentMethod: paymentMethod,
+          paymentStatus: "completed",
+          notes: notes,
+          transactionId: paymentResult.transaction_id,
+          paymentType: paymentResult.payment_type,
+        }),
+      });
+
+      if (response.ok) {
+        localStorage.setItem(
+          "coffee-completed-order",
+          JSON.stringify(orderInfo)
+        );
+        clearCart(); // Clear cart after successful payment
+        const { nextStepRoute } = getStepInfo(2);
+        router.push(nextStepRoute);
+      } else {
+        throw new Error("Failed to save order");
+      }
+    } catch (error) {
+      console.error("Error saving successful order:", error);
+      // Even if backend fails, still proceed since payment was successful
+      localStorage.setItem("coffee-completed-order", JSON.stringify(orderInfo));
+      clearCart();
+      const { nextStepRoute } = getStepInfo(2);
+      router.push(nextStepRoute);
+    }
   };
   // Load discount from localStorage on component mount
   useEffect(() => {
@@ -212,9 +432,10 @@ export default function PaymentPage() {
               </div>{" "}
               {/* Order Notes */}
               <div className="mb-8">
+                {" "}
                 <label
                   htmlFor="notes"
-                  className="block text-sm font-semibold text-gray-700 mb-3 flex items-center"
+                  className="text-sm font-semibold text-gray-700 mb-3 flex items-center"
                 >
                   <i className="fas fa-sticky-note mr-2 text-purple-600"></i>
                   Special Instructions
@@ -230,9 +451,10 @@ export default function PaymentPage() {
               </div>
               {/* Promo Code */}
               <div className="mb-8">
+                {" "}
                 <label
                   htmlFor="promo"
-                  className="block text-sm font-semibold text-gray-700 mb-3 flex items-center"
+                  className="text-sm font-semibold text-gray-700 mb-3 flex items-center"
                 >
                   <i className="fas fa-ticket-alt mr-2 text-purple-600"></i>
                   Promo Code
