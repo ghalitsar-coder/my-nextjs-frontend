@@ -12,7 +12,13 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    const { transaction_details, customer_details, item_details } = body;
+    const { 
+      transaction_details, 
+      customer_details, 
+      item_details, 
+      payment_method, 
+      card_info 
+    } = body;
 
     // Validate required fields
     if (!transaction_details?.order_id || !transaction_details?.gross_amount) {
@@ -29,18 +35,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create transaction parameter
-    const parameter = {
+    // Calculate the sum of item_details to ensure it matches gross_amount
+    const itemsTotal = item_details.reduce((sum: number, item: {price: number, quantity: number}) => {
+      return sum + (Math.round(item.price) * item.quantity);
+    }, 0);
+
+    // Use the items total to ensure consistency between gross_amount and sum of items
+    const grossAmount = itemsTotal;
+      // Create transaction parameter
+    const parameter: any = {
       transaction_details: {
         order_id: transaction_details.order_id,
-        gross_amount: Math.round(transaction_details.gross_amount),
+        gross_amount: grossAmount,
       },
       customer_details: {
         first_name: customer_details?.first_name || "Customer",
         email: customer_details?.email || "customer@example.com",
         phone: customer_details?.phone || "08123456789",
       },
-      item_details: item_details.map((item: any) => ({
+      item_details: item_details.map((item: {id: string, price: number, quantity: number, name: string}) => ({
         id: item.id,
         price: Math.round(item.price),
         quantity: item.quantity,
