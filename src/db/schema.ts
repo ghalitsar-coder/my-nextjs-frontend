@@ -6,23 +6,18 @@ import {
   timestamp,
 } from "drizzle-orm/pg-core";
 
-// Definisikan skema auth
 export const authSchema = pgSchema("auth");
-
-// Definisikan ENUM untuk role
 export const userRoleEnum = authSchema.enum("user_role", [
   "customer",
   "admin",
   "cashier",
 ]);
-
-// Definisikan tabel users dalam skema auth
 export const usersTable = authSchema.table("users", {
-  user_id: serial("user_id").primaryKey(),
+  id: serial("id").primaryKey(), // Better Auth menggunakan "id", bukan "user_id"
   username: varchar("username", { length: 50 }).notNull().unique(),
   password: varchar("password", { length: 255 }),
   email: varchar("email", { length: 100 }).notNull().unique(),
-  full_name: varchar("full_name", { length: 100 }).notNull(),
+  name: varchar("name", { length: 100 }).notNull(), // Ganti full_name menjadi name
   phone_number: varchar("phone_number", { length: 20 }),
   address: text("address"),
   role: userRoleEnum("role").notNull().default("customer"),

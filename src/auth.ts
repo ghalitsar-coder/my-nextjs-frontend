@@ -1,12 +1,19 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { db } from "./db/db";
+import { usersTable } from "./db/schema";
 import axios from "axios";
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
     provider: "pg",
+    schema: {
+      user: usersTable,
+    },
   }),
+  emailAndPassword: {
+    enabled: true, // Aktifkan autentikasi email/kata sandi
+  },
   onUserCreate: async (user, ctx) => {
     try {
       await axios.post(`${process.env.SPRING_BOOT_URL}/users`, {
@@ -27,7 +34,17 @@ export const auth = betterAuth({
     google: {
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      redirectURI: "http://localhost:3000/api/auth/google/callback",
     },
   },
   secret: process.env.NEXT_AUTH_SECRET!,
+  advanced: {
+    crossSubDomainCookies: {
+      enabled: false,
+    },
+    defaultCookieAttributes: {
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+    },
+  },
 });

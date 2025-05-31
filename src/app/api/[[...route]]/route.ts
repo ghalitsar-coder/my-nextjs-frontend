@@ -1,21 +1,65 @@
-import { auth } from "@/auth";
 import { Hono } from "hono";
 import { handle } from "hono/vercel";
+import { cors } from "hono/cors";
+import { auth } from "@/auth";
+
+// Configuration
+const SPRING_BOOT_BASE_URL =
+  process.env.SPRING_BOOT_URL || "http://localhost:8080";
+
 // Create a new Hono app
-const app = new Hono().basePath("/api");
+const app = new Hono<{
+  Variables: {
+    user: typeof auth.$Infer.Session.user | null;
+    session: typeof auth.$Infer.Session.session | null;
+  };
+}>();
 
-// CORS middleware for handling cross-origin requests
+// Konfigurasi CORS
+app.use(
+  "/api/*",
+  cors({
+    origin: "http://localhost:3000",
+    allowHeaders: ["Content-Type", "Authorization"],
+    allowMethods: ["POST", "GET", "PUT", "DELETE", "OPTIONS"],
+    exposeHeaders: ["Content-Length"],
+    maxAge: 600,
+    credentials: true,
+  })
+);
+
+// Middleware untuk menyimpan session dan user
 app.use("*", async (c, next) => {
-  // Handle CORS
-  c.header("Access-Control-Allow-Origin", "*");
-  c.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-  c.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
-
-  if (c.req.method === "OPTIONS") {
-    return c.text("", 200);
+  const session = await auth.api.getSession({ headers: c.req.raw.headers });
+  if (!session) {
+    c.set("user", null);
+    c.set("session", null);
+    return next();
   }
+  c.set("user", session.user);
+  c.set("session", session.session);
+  return next();
+});
 
-  await next();
+// Handler autentikasi dengan log tambahan
+app.on(["POST", "GET"], "/api/auth/*", async (c) => {
+  console.log("Auth Handler:", c.req.raw.method, c.req.raw.url, await c.req.json().catch(() => null));
+  try {
+    const response = await auth.handler(c.req.raw);
+    console.log("Auth Handler Response:", response.status);
+    return response;
+  } catch (error) {
+    console.error("Auth Handler Error:", error);
+    return c.json({ error: "Internal server error" }, 500);
+  }
+});
+
+// Contoh endpoint untuk memeriksa session
+app.get("/api/session", (c) => {
+  const session = c.get("session");
+  const user = c.get("user");
+  if (!user) return c.json({ error: "Unauthorized" }, 401);
+  return c.json({ session, user });
 });
 
 // Health check endpoint
@@ -28,10 +72,7 @@ app.get("/health", (c) => {
 });
 
 // Proxy endpoints to Spring Boot
-const SPRING_BOOT_BASE_URL = "http://localhost:8080";
-
-// Users API proxy
-app.get("/users", async (c) => {
+app.get("/api/users", async (c) => {
   try {
     const response = await fetch(`${SPRING_BOOT_BASE_URL}/api/users`);
     const data = await response.json();
@@ -43,7 +84,7 @@ app.get("/users", async (c) => {
 });
 
 // Get users by role
-app.get("/users/role/:role", async (c) => {
+app.get("/api/users/role/:role", async (c) => {
   try {
     const role = c.req.param("role");
     const response = await fetch(
@@ -58,7 +99,7 @@ app.get("/users/role/:role", async (c) => {
 });
 
 // Get user by ID
-app.get("/users/:id", async (c) => {
+app.get("/api/users/:id", async (c) => {
   try {
     const id = c.req.param("id");
     const response = await fetch(`${SPRING_BOOT_BASE_URL}/api/users/${id}`);
@@ -74,7 +115,7 @@ app.get("/users/:id", async (c) => {
 });
 
 // Check user role
-app.get("/users/:id/check-role", async (c) => {
+app.get("/api/users/:id/check-role", async (c) => {
   try {
     const id = c.req.param("id");
     const response = await fetch(
@@ -92,7 +133,7 @@ app.get("/users/:id/check-role", async (c) => {
 });
 
 // Update user role
-app.put("/users/:id/role", async (c) => {
+app.put("/api/users/:id/role", async (c) => {
   try {
     const id = c.req.param("id");
     const body = await c.req.json();
@@ -121,7 +162,7 @@ app.put("/users/:id/role", async (c) => {
   }
 });
 
-app.post("/users", async (c) => {
+app.post("/api/users", async (c) => {
   try {
     const body = await c.req.json();
     const response = await fetch(`${SPRING_BOOT_BASE_URL}/api/users`, {
@@ -140,7 +181,7 @@ app.post("/users", async (c) => {
 });
 
 // Products API proxy
-app.get("/products", async (c) => {
+app.get("/api/products", async (c) => {
   try {
     const response = await fetch(`${SPRING_BOOT_BASE_URL}/api/products`);
     const data = await response.json();
@@ -151,7 +192,7 @@ app.get("/products", async (c) => {
   }
 });
 
-app.post("/products", async (c) => {
+app.post("/api/products", async (c) => {
   try {
     const body = await c.req.json();
     const response = await fetch(`${SPRING_BOOT_BASE_URL}/api/products`, {
@@ -170,7 +211,7 @@ app.post("/products", async (c) => {
 });
 
 // Orders API proxy
-app.get("/orders", async (c) => {
+app.get("/api/orders", async (c) => {
   try {
     const response = await fetch(`${SPRING_BOOT_BASE_URL}/api/orders`);
     const data = await response.json();
@@ -181,7 +222,7 @@ app.get("/orders", async (c) => {
   }
 });
 
-app.post("/orders", async (c) => {
+app.post("/api/orders", async (c) => {
   try {
     const body = await c.req.json();
     const response = await fetch(`${SPRING_BOOT_BASE_URL}/api/orders`, {
@@ -200,7 +241,7 @@ app.post("/orders", async (c) => {
 });
 
 // Statistics endpoint
-app.get("/stats", async (c) => {
+app.get("/api/stats", async (c) => {
   try {
     const [usersRes, productsRes] = await Promise.all([
       fetch(`${SPRING_BOOT_BASE_URL}/api/users`),
@@ -229,11 +270,9 @@ app.get("/stats", async (c) => {
 });
 
 // Cart management endpoints
-app.get("/cart/:userId", async (c) => {
+app.get("/api/cart/:userId", async (c) => {
   const userId = c.req.param("userId");
   try {
-    // For now, return mock cart data
-    // In a real app, you'd fetch from database or session
     const cart = {
       userId: parseInt(userId),
       items: [],
@@ -249,12 +288,10 @@ app.get("/cart/:userId", async (c) => {
   }
 });
 
-app.post("/cart/:userId/add", async (c) => {
+app.post("/api/cart/:userId/add", async (c) => {
   const userId = c.req.param("userId");
   try {
     const body = await c.req.json();
-    // Here you would add item to cart
-    // For now, return success response
     return c.json({
       success: true,
       message: "Item added to cart",
@@ -268,7 +305,7 @@ app.post("/cart/:userId/add", async (c) => {
 });
 
 // Search endpoint
-app.get("/search", async (c) => {
+app.get("/api/search", async (c) => {
   const query = c.req.query("q");
   const type = c.req.query("type") || "products";
 
@@ -293,58 +330,6 @@ app.get("/search", async (c) => {
   } catch (error) {
     console.error("Error searching:", error);
     return c.json({ error: "Search failed" }, 500);
-  }
-});
-
-// Hello endpoint for testing
-app.get("/hello", (c) => {
-  return c.text("Hello from Hono API! 🔥");
-});
-
-app.post("/auth/sign-up", async (c) => {
-  const body = await c.req.json();
-  try {
-    const result = await auth.api.signUp({
-      email: body.email,
-      password: body.password,
-      full_name: body.full_name,
-      username: body.username,
-      phone_number: body.phone_number || null,
-      address: body.address || null,
-    });
-    return c.json(result, 200);
-  } catch (error: any) {
-    return c.json({ error: error.message }, 400);
-  }
-});
-
-app.post("/auth/sign-in", async (c) => {
-  const body = await c.req.json();
-  try {
-    const result = await auth.api.signIn({
-      email: body.email,
-      password: body.password,
-    });
-    return c.json(result, 200);
-  } catch (error: any) {
-    return c.json({ error: error.message }, 400);
-  }
-});
-
-app.get("/auth/google", async (c) => {
-  const redirectUrl = await auth.api.getOAuthUrl("google", {
-    redirectUri: `${c.req.url}/callback`,
-  });
-  return c.redirect(redirectUrl);
-});
-
-app.get("/auth/google/callback", async (c) => {
-  try {
-    const result = await auth.api.handleOAuthCallback(c.req.url, "google");
-    // Redirect ke dashboard dengan token atau session
-    return c.redirect("/dashboard");
-  } catch (error: any) {
-    return c.json({ error: error.message }, 400);
   }
 });
 
