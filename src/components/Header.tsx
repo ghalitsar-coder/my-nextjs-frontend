@@ -22,13 +22,9 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { authClient } from "@/lib/auth-client";
+import CartButton from "@/app/components/cart/CartButton";
 
 interface User {
   id: string;
@@ -44,7 +40,6 @@ interface HeaderProps {
 
 export default function Header({ className = "" }: HeaderProps) {
   const [user, setUser] = useState<User | null>(null);
-  const [cartCount, setCartCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const router = useRouter();
@@ -73,11 +68,8 @@ export default function Header({ className = "" }: HeaderProps) {
     checkAuth();
   }, []);
 
-  // Mock cart count - replace with actual cart logic
-  useEffect(() => {
-    // This would typically come from a cart context or API
-    setCartCount(3);
-  }, []);
+  // Remove cart count logic since we're using Zustand store
+  useEffect(() => {}, []);
 
   const handleSignOut = async () => {
     try {
@@ -143,7 +135,6 @@ export default function Header({ className = "" }: HeaderProps) {
               </span>
             </Link>
           </div>
-
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-6">
             <NavigationMenu>
@@ -161,48 +152,12 @@ export default function Header({ className = "" }: HeaderProps) {
                 ))}
               </NavigationMenuList>
             </NavigationMenu>
-          </div>
-
+          </div>{" "}
           {/* Actions */}
           <div className="flex items-center space-x-4">
             {/* Cart */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="relative"
-                  asChild
-                >
-                  <Link href="/cart">
-                    <svg
-                      className="h-5 w-5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.68 8.32a1 1 0 001.01 1.18h9.34M9 19.5a1.5 1.5 0 003 0m6 0a1.5 1.5 0 003 0"
-                      />
-                    </svg>
-                    {cartCount > 0 && (
-                      <Badge
-                        variant="destructive"
-                        className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 text-xs"
-                      >
-                        {cartCount}
-                      </Badge>
-                    )}
-                  </Link>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Cart ({cartCount} items)</p>
-              </TooltipContent>
-            </Tooltip>{" "}
+            <CartButton />
+
             {/* Auth Section */}
             {isLoading ? (
               // Loading State

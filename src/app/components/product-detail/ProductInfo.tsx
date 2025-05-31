@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import QuantitySelector from "./QuantitySelector";
 import { Product, ProductSize, GrindOption } from "./types";
+import { useCartStore } from "@/store/cart-store";
 
 interface ProductInfoProps {
   product: Product;
@@ -20,6 +21,7 @@ export default function ProductInfo({ product }: ProductInfoProps) {
   const [quantity, setQuantity] = useState<number>(1);
   const [totalPrice, setTotalPrice] = useState<number>(selectedSize.price);
   const router = useRouter();
+  const { addItem } = useCartStore();
 
   // Update total price when quantity or size changes
   useEffect(() => {
@@ -37,42 +39,27 @@ export default function ProductInfo({ product }: ProductInfoProps) {
   const handleQuantityChange = (newQuantity: number) => {
     setQuantity(newQuantity);
   };
-
   const addToCart = () => {
-    const cartItem = {
-      id: product.id,
+    // Convert to format expected by cart store
+    const productForCart = {
+      id: parseInt(product.id.toString()),
       name: product.name,
       price: selectedSize.price,
-      quantity: quantity,
-      size: selectedSize.name,
-      grind: selectedGrind.name,
       image: product.images[0].url,
+      description: product.description,
+      category:
+        typeof product.category === "string"
+          ? product.category
+          : product.category?.name || "Coffee",
+      available: true,
     };
 
-    // Get current cart from localStorage or initialize an empty array
-    const currentCart = JSON.parse(localStorage.getItem("coffee-cart") || "[]");
-
-    // Check if item with same id, size, and grind already exists
-    const existingItemIndex = currentCart.findIndex(
-      (item: any) =>
-        item.id === cartItem.id &&
-        item.size === cartItem.size &&
-        item.grind === cartItem.grind
-    );
-
-    if (existingItemIndex !== -1) {
-      // Update existing item
-      currentCart[existingItemIndex].quantity += quantity;
-    } else {
-      // Add new item
-      currentCart.push(cartItem);
-    }
-
-    // Save updated cart
-    localStorage.setItem("coffee-cart", JSON.stringify(currentCart));
+    addItem(productForCart, quantity);
 
     // Show confirmation message
-    alert("Added to cart!");
+    alert(
+      `Added ${quantity} ${product.name} (${selectedSize.name}, ${selectedGrind.name}) to cart!`
+    );
   };
 
   return (

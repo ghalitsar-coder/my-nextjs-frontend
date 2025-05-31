@@ -6,32 +6,17 @@ import ProgressSteps from "./ProgressSteps";
 import { ORDER_FLOW_STEPS, getStepInfo } from "./StepsConfig";
 import { useCartStore } from "@/store/cart-store";
 
-// Backend Product interface (matching Spring Boot entity)
-interface BackendProduct {
-  productId: number;
-  category: {
-    categoryId: number;
-    name: string;
-    description: string;
-  };
-  name: string;
-  description: string;
-  price: number;
-  stock: number;
-  isAvailable: boolean;
-}
-
-// Frontend Menu Item interface for display
-interface MenuItem {
+// Define type for a menu item
+type MenuItem = {
   id: number;
   name: string;
   price: number;
   description: string;
+  size: string;
+  calories: number;
   category: string;
-  image: string;
-  stock: number;
-  available: boolean;
-}
+  image?: string;
+};
 
 export default function OrderPage() {
   const router = useRouter();
@@ -43,85 +28,83 @@ export default function OrderPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filter, setFilter] = useState("All Items");
 
-  // Real backend data states
-  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [categories, setCategories] = useState<string[]>(["All Items"]);
+  // Example menu items
+  const menuItems: MenuItem[] = [
+    {
+      id: 1,
+      name: "Cappuccino",
+      price: 4.5,
+      description: "Espresso with steamed milk and foam",
+      size: "Medium",
+      calories: 120,
+      category: "Coffee",
+      image:
+        "https://images.unsplash.com/photo-1517701550928-30cf4ba1dba5?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=200&q=80",
+    },
+    {
+      id: 2,
+      name: "Latte",
+      price: 5.25,
+      description: "Espresso with a lot of steamed milk",
+      size: "Large",
+      calories: 190,
+      category: "Coffee",
+      image:
+        "https://images.unsplash.com/photo-1568649929103-28ffbefaca1e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=200&q=80",
+    },
+    {
+      id: 3,
+      name: "Americano",
+      price: 3.75,
+      description: "Espresso with hot water",
+      size: "Small",
+      calories: 15,
+      category: "Coffee",
+      image:
+        "https://images.unsplash.com/photo-1579992357154-faf4bde95b3d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=200&q=80",
+    },
+    {
+      id: 4,
+      name: "Mocha",
+      price: 5.75,
+      description: "Espresso with chocolate and steamed milk",
+      size: "Medium",
+      calories: 250,
+      category: "Coffee",
+      image:
+        "https://images.unsplash.com/photo-1519175182139-61037ab2d100?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=200&q=80",
+    },
+    {
+      id: 5,
+      name: "Butter Croissant",
+      price: 3.25,
+      description: "Flaky, buttery pastry",
+      size: "Regular",
+      calories: 310,
+      category: "Pastries",
+      image:
+        "https://images.unsplash.com/photo-1551024506-0bccd828d307?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=200&q=80",
+    },
+    {
+      id: 6,
+      name: "Blueberry Muffin",
+      price: 3.75,
+      description: "Fresh blueberries in a sweet muffin",
+      size: "Large",
+      calories: 380,
+      category: "Pastries",
+      image:
+        "https://images.unsplash.com/photo-1607958996333-41784c70b86f?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=200&q=80",
+    },
+  ];
 
-  // Fetch real products from backend
-  useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-
-        const response = await fetch(
-          "http://localhost:8080/api/products/available"
-        );
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const backendProducts: BackendProduct[] = await response.json();
-
-        // Convert backend products to frontend menu items
-        const convertedItems: MenuItem[] = backendProducts.map((product) => ({
-          id: product.productId,
-          name: product.name,
-          price: product.price,
-          description:
-            product.description || "Delicious item crafted with care",
-          category: product.category.name,
-          image: getDefaultImage(product.category.name),
-          stock: product.stock,
-          available: product.isAvailable,
-        }));
-
-        setMenuItems(convertedItems);
-
-        // Extract unique categories from products
-        const uniqueCategories = Array.from(
-          new Set(backendProducts.map((product) => product.category.name))
-        );
-        setCategories(["All Items", ...uniqueCategories]);
-      } catch (err) {
-        console.error("Error fetching products:", err);
-        setError("Failed to load menu items. Please try again later.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchProducts();
-  }, []);
-
-  // Helper function to get default images based on category
-  const getDefaultImage = (categoryName: string): string => {
-    const imageMap: { [key: string]: string } = {
-      Coffee:
-        "https://images.unsplash.com/photo-1522992319-0365e5f11656?ixlib=rb-1.2.1&auto=format&fit=crop&w=634&q=80",
-      Tea: "https://images.unsplash.com/photo-1556679343-c7306c1976bc?ixlib=rb-1.2.1&auto=format&fit=crop&w=634&q=80",
-      Pastry:
-        "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?ixlib=rb-1.2.1&auto=format&fit=crop&w=634&q=80",
-      Sandwich:
-        "https://images.unsplash.com/photo-1539252554453-80ab65ce3586?ixlib=rb-1.2.1&auto=format&fit=crop&w=634&q=80",
-      Merchandise:
-        "https://images.unsplash.com/photo-1544787219-7f47ccb76574?ixlib=rb-1.2.1&auto=format&fit=crop&w=634&q=80",
-    };
-    return (
-      imageMap[categoryName] ||
-      "https://images.unsplash.com/photo-1522992319-0365e5f11656?ixlib=rb-1.2.1&auto=format&fit=crop&w=634&q=80"
-    );
-  };
-  // Filter menu items based on search and category
+  // Filter menu items
   const filteredMenuItems = menuItems.filter((item) => {
     const matchesSearch =
       item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.description.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesFilter = filter === "All Items" || item.category === filter;
-    return matchesSearch && matchesFilter && item.available;
+    return matchesSearch && matchesFilter;
   });
 
   // Group items by category
@@ -134,9 +117,14 @@ export default function OrderPage() {
   });
 
   // Add to cart function for menu items
-  const addToCartFromMenu = (id: number, name: string, price: number) => {
+  const addToCartFromMenu = (
+    id: number,
+    name: string,
+    price: number,
+    size: string
+  ) => {
     const productForCart = {
-      id: id, // Use original ID to match ProductInfo behavior
+      id,
       name,
       price,
       image:
@@ -148,21 +136,19 @@ export default function OrderPage() {
     };
 
     addItem(productForCart, 1);
-
-    // Show confirmation message
-    alert(`Added ${name} to cart!`);
   };
+
   // Helper functions for cart management
-  const updateQuantityHandler = (uniqueKey: string, change: number) => {
-    const item = items.find((item) => item.uniqueKey === uniqueKey);
+  const updateQuantityHandler = (id: number, change: number) => {
+    const item = items.find((item) => item.id === id);
     if (item) {
       const newQuantity = item.quantity + change;
-      updateQuantity(uniqueKey, newQuantity);
+      updateQuantity(id, newQuantity);
     }
   };
 
-  const removeFromCartHandler = (uniqueKey: string) => {
-    removeItem(uniqueKey);
+  const removeFromCartHandler = (id: number) => {
+    removeItem(id);
   };
 
   // Apply promo code
@@ -279,56 +265,22 @@ export default function OrderPage() {
                 <div className="flex items-center space-x-3">
                   <label className="text-sm font-medium text-gray-600">
                     Filter:
-                  </label>                  <select
+                  </label>
+                  <select
                     className="text-sm border-2 border-gray-200 rounded-xl px-4 py-2 focus:ring-2 focus:ring-purple-600 focus:border-purple-600 bg-white"
                     value={filter}
                     onChange={(e) => setFilter(e.target.value)}
                   >
-                    {categories.map((category) => (
-                      <option key={category} value={category}>
-                        {category}
-                      </option>
-                    ))}
+                    <option>All Items</option>
+                    <option>Coffee</option>
+                    <option>Pastries</option>
                   </select>
                 </div>
-              </div>            </div>
-
-            {/* Loading State */}
-            {loading && (
-              <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-12 text-center">
-                <div className="animate-spin bg-purple-600 w-12 h-12 rounded-full border-4 border-purple-200 border-t-transparent mx-auto mb-4"></div>
-                <h3 className="text-xl font-semibold text-gray-600 mb-2">
-                  Loading Menu Items...
-                </h3>
-                <p className="text-gray-500">
-                  Please wait while we fetch our delicious offerings
-                </p>
               </div>
-            )}
-
-            {/* Error State */}
-            {error && (
-              <div className="bg-white rounded-2xl shadow-lg border border-red-200 p-12 text-center">
-                <div className="bg-red-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <i className="fas fa-exclamation-triangle text-red-500 text-2xl"></i>
-                </div>
-                <h3 className="text-xl font-semibold text-red-600 mb-2">
-                  Failed to Load Menu
-                </h3>
-                <p className="text-gray-600 mb-4">{error}</p>
-                <button
-                  className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition-colors"
-                  onClick={() => window.location.reload()}
-                >
-                  <i className="fas fa-redo mr-2"></i>
-                  Try Again
-                </button>
-              </div>
-            )}
+            </div>
 
             {/* Menu Categories */}
-            {!loading && !error && (
-              <div className="space-y-10">
+            <div className="space-y-10">
               {Object.entries(itemsByCategory).map(
                 ([category, categoryItems]) => (
                   <div
@@ -354,7 +306,12 @@ export default function OrderPage() {
                           key={item.id}
                           className="group bg-gradient-to-br from-white to-gray-50 rounded-xl shadow-md hover:shadow-xl border border-gray-100 p-6 transition-all duration-300 cursor-pointer hover:-translate-y-1"
                           onClick={() =>
-                            addToCartFromMenu(item.id, item.name, item.price)
+                            addToCartFromMenu(
+                              item.id,
+                              item.name,
+                              item.price,
+                              item.size
+                            )
                           }
                         >
                           <div className="flex justify-between items-start mb-4">
@@ -367,16 +324,16 @@ export default function OrderPage() {
                           </div>
                           <p className="text-gray-600 mb-4 leading-relaxed">
                             {item.description}
-                          </p>{" "}
+                          </p>
                           <div className="flex items-center justify-between">
                             <div className="flex items-center text-sm text-gray-500 space-x-4">
-                              <span className="flex items-center bg-green-50 px-2 py-1 rounded-lg">
-                                <i className="fas fa-box text-green-500 mr-1"></i>
-                                Stock: {item.stock}
+                              <span className="flex items-center bg-red-50 px-2 py-1 rounded-lg">
+                                <i className="fas fa-fire text-red-500 mr-1"></i>
+                                {item.calories} cal
                               </span>
-                              <span className="flex items-center bg-blue-50 px-2 py-1 rounded-lg">
-                                <i className="fas fa-tag text-blue-600 mr-1"></i>
-                                {item.category}
+                              <span className="flex items-center bg-yellow-50 px-2 py-1 rounded-lg">
+                                <i className="fas fa-mug-hot text-yellow-600 mr-1"></i>
+                                {item.size}
                               </span>
                             </div>
                             <div className="bg-purple-600 text-white p-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity">
@@ -406,13 +363,13 @@ export default function OrderPage() {
                     onClick={() => {
                       setSearchTerm("");
                       setFilter("All Items");
-                    }}                  >
+                    }}
+                  >
                     Clear filters
                   </button>
                 </div>
               )}
             </div>
-            )}
           </div>
 
           {/* Cart Section */}
@@ -445,9 +402,9 @@ export default function OrderPage() {
                     </p>
                   </div>
                 ) : (
-                  items.map((item) => (
+                  items.map((item, index) => (
                     <div
-                      key={item.uniqueKey}
+                      key={`${item.id}-${index}`}
                       className="bg-gradient-to-r from-gray-50 to-white border border-gray-200 rounded-xl p-4 hover:shadow-md transition-all duration-200"
                     >
                       <div className="flex justify-between items-start">
@@ -462,7 +419,7 @@ export default function OrderPage() {
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                updateQuantityHandler(item.uniqueKey, -1);
+                                updateQuantityHandler(item.id, -1);
                               }}
                               className="w-8 h-8 rounded-full bg-gradient-to-r from-gray-200 to-gray-300 text-gray-600 flex items-center justify-center hover:from-red-100 hover:to-red-200 hover:text-red-600 transition-all"
                             >
@@ -474,7 +431,7 @@ export default function OrderPage() {
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                updateQuantityHandler(item.uniqueKey, 1);
+                                updateQuantityHandler(item.id, 1);
                               }}
                               className="w-8 h-8 rounded-full bg-gradient-to-r from-purple-500 to-purple-600 text-white flex items-center justify-center hover:from-purple-600 hover:to-purple-700 transition-all"
                             >
@@ -489,7 +446,7 @@ export default function OrderPage() {
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              removeFromCartHandler(item.uniqueKey);
+                              removeFromCartHandler(item.id);
                             }}
                             className="text-red-500 hover:text-red-700 text-sm mt-2 bg-red-50 hover:bg-red-100 px-2 py-1 rounded-lg transition-all"
                           >

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/Header";
+import CartProvider from "./components/cart/CartProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -15,7 +16,8 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "CoffeeShop - Premium Coffee Experience",
-  description: "Discover our premium coffee selection and exceptional brewing experience",
+  description:
+    "Discover our premium coffee selection and exceptional brewing experience",
 };
 
 export default function RootLayout({
@@ -28,10 +30,10 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <Header />
-        <main className="">
-          {children}
-        </main>
+        <CartProvider>
+          <Header />
+          <main className="">{children}</main>
+        </CartProvider>
       </body>
     </html>
   );
