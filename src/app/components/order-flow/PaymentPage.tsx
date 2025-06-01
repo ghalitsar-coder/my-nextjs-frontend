@@ -113,7 +113,7 @@ export default function PaymentPage() {
     try {
       // Calculate gross amount as integer to match with item_details
       const itemsTotal = orderItems.reduce((sum, item) => {
-        return sum + (Math.round(item.price) * item.quantity);
+        return sum + Math.round(item.price) * item.quantity;
       }, 0);
 
       const orderData = {
@@ -543,7 +543,8 @@ export default function PaymentPage() {
                     <div className="flex items-center mr-auto">
                       <div className="bg-blue-100 p-3 rounded-lg mr-4">
                         <i className="fas fa-credit-card text-2xl text-blue-600"></i>
-                      </div>                      <div>
+                      </div>{" "}
+                      <div>
                         <label
                           htmlFor="card"
                           className="font-semibold text-gray-800 cursor-pointer text-lg"
@@ -551,7 +552,8 @@ export default function PaymentPage() {
                           Credit/Debit Card
                         </label>
                         <p className="text-gray-600 mt-1">
-                          Secure payment via Midtrans - card details will be entered in the next step
+                          Secure payment via Midtrans - card details will be
+                          entered in the next step
                         </p>
                       </div>
                     </div>
@@ -560,7 +562,8 @@ export default function PaymentPage() {
                       <i className="fab fa-cc-mastercard text-2xl text-red-500"></i>
                       <i className="fab fa-cc-amex text-2xl text-blue-500"></i>
                     </div>
-                  </div>                  {/* Card Info Note - No Form Needed */}
+                  </div>{" "}
+                  {/* Card Info Note - No Form Needed */}
                   {paymentMethod === "card" && (
                     <div className="mt-6 pt-6 border-t border-gray-200">
                       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
@@ -573,7 +576,10 @@ export default function PaymentPage() {
                               Secure Payment Process
                             </h4>
                             <p className="text-blue-700 text-sm leading-relaxed">
-                              After clicking "Complete Payment", you'll be redirected to Midtrans secure payment page where you can safely enter your card details. Your information is protected with bank-level security.
+                              After clicking "Complete Payment", you'll be
+                              redirected to Midtrans secure payment page where
+                              you can safely enter your card details. Your
+                              information is protected with bank-level security.
                             </p>
                           </div>
                         </div>

@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { handle } from "hono/vercel";
 import { cors } from "hono/cors";
-import { auth } from "@/auth";
+import { auth } from "@/lib/auth";
 
 // Configuration
 const SPRING_BOOT_BASE_URL =
@@ -15,7 +15,6 @@ const app = new Hono<{
   };
 }>();
 
-// Konfigurasi CORS
 app.use(
   "/api/*",
   cors({
@@ -28,7 +27,6 @@ app.use(
   })
 );
 
-// Middleware untuk menyimpan session dan user
 app.use("*", async (c, next) => {
   const session = await auth.api.getSession({ headers: c.req.raw.headers });
   if (!session) {
@@ -41,12 +39,11 @@ app.use("*", async (c, next) => {
   return next();
 });
 
-// Handler autentikasi dengan log tambahan
 app.on(["POST", "GET"], "/api/auth/*", async (c) => {
   console.log("Auth Handler:", c.req.raw.method, c.req.raw.url, await c.req.json().catch(() => null));
   try {
     const response = await auth.handler(c.req.raw);
-    console.log("Auth Handler Response:", response.status);
+    console.log("Auth Handler Response:", response.status, await response.text());
     return response;
   } catch (error) {
     console.error("Auth Handler Error:", error);
@@ -54,7 +51,6 @@ app.on(["POST", "GET"], "/api/auth/*", async (c) => {
   }
 });
 
-// Contoh endpoint untuk memeriksa session
 app.get("/api/session", (c) => {
   const session = c.get("session");
   const user = c.get("user");
@@ -74,7 +70,7 @@ app.get("/health", (c) => {
 // Proxy endpoints to Spring Boot
 app.get("/api/users", async (c) => {
   try {
-    const response = await fetch(`${SPRING_BOOT_BASE_URL}/api/users`);
+    const response = await fetch(`${SPRING_BOOT_BASE_URL}/users`);
     const data = await response.json();
     return c.json(data);
   } catch (error) {
@@ -88,7 +84,7 @@ app.get("/api/users/role/:role", async (c) => {
   try {
     const role = c.req.param("role");
     const response = await fetch(
-      `${SPRING_BOOT_BASE_URL}/api/users/role/${role}`
+      `${SPRING_BOOT_BASE_URL}/users/role/${role}`
     );
     const data = await response.json();
     return c.json(data);
@@ -102,7 +98,7 @@ app.get("/api/users/role/:role", async (c) => {
 app.get("/api/users/:id", async (c) => {
   try {
     const id = c.req.param("id");
-    const response = await fetch(`${SPRING_BOOT_BASE_URL}/api/users/${id}`);
+    const response = await fetch(`${SPRING_BOOT_BASE_URL}/users/${id}`);
     if (!response.ok) {
       return c.json({ error: "User not found" }, 404);
     }
@@ -119,7 +115,7 @@ app.get("/api/users/:id/check-role", async (c) => {
   try {
     const id = c.req.param("id");
     const response = await fetch(
-      `${SPRING_BOOT_BASE_URL}/api/users/${id}/check-role`
+      `${SPRING_BOOT_BASE_URL}/users/${id}/check-role`
     );
     if (!response.ok) {
       return c.json({ error: "User not found" }, 404);
@@ -138,7 +134,7 @@ app.put("/api/users/:id/role", async (c) => {
     const id = c.req.param("id");
     const body = await c.req.json();
     const response = await fetch(
-      `${SPRING_BOOT_BASE_URL}/api/users/${id}/role`,
+      `${SPRING_BOOT_BASE_URL}/users/${id}/role`,
       {
         method: "PUT",
         headers: {
@@ -165,7 +161,7 @@ app.put("/api/users/:id/role", async (c) => {
 app.post("/api/users", async (c) => {
   try {
     const body = await c.req.json();
-    const response = await fetch(`${SPRING_BOOT_BASE_URL}/api/users`, {
+    const response = await fetch(`${SPRING_BOOT_BASE_URL}/users`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -183,7 +179,7 @@ app.post("/api/users", async (c) => {
 // Products API proxy
 app.get("/api/products", async (c) => {
   try {
-    const response = await fetch(`${SPRING_BOOT_BASE_URL}/api/products`);
+    const response = await fetch(`${SPRING_BOOT_BASE_URL}/products`);
     const data = await response.json();
     return c.json(data);
   } catch (error) {
@@ -195,7 +191,7 @@ app.get("/api/products", async (c) => {
 app.post("/api/products", async (c) => {
   try {
     const body = await c.req.json();
-    const response = await fetch(`${SPRING_BOOT_BASE_URL}/api/products`, {
+    const response = await fetch(`${SPRING_BOOT_BASE_URL}/products`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -213,7 +209,7 @@ app.post("/api/products", async (c) => {
 // Orders API proxy
 app.get("/api/orders", async (c) => {
   try {
-    const response = await fetch(`${SPRING_BOOT_BASE_URL}/api/orders`);
+    const response = await fetch(`${SPRING_BOOT_BASE_URL}/orders`);
     const data = await response.json();
     return c.json(data);
   } catch (error) {
@@ -225,7 +221,7 @@ app.get("/api/orders", async (c) => {
 app.post("/api/orders", async (c) => {
   try {
     const body = await c.req.json();
-    const response = await fetch(`${SPRING_BOOT_BASE_URL}/api/orders`, {
+    const response = await fetch(`${SPRING_BOOT_BASE_URL}/orders`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -244,8 +240,8 @@ app.post("/api/orders", async (c) => {
 app.get("/api/stats", async (c) => {
   try {
     const [usersRes, productsRes] = await Promise.all([
-      fetch(`${SPRING_BOOT_BASE_URL}/api/users`),
-      fetch(`${SPRING_BOOT_BASE_URL}/api/products`),
+      fetch(`${SPRING_BOOT_BASE_URL}/users`),
+      fetch(`${SPRING_BOOT_BASE_URL}/products`),
     ]);
 
     const users = await usersRes.json();
@@ -311,7 +307,7 @@ app.get("/api/search", async (c) => {
 
   try {
     if (type === "products") {
-      const response = await fetch(`${SPRING_BOOT_BASE_URL}/api/products`);
+      const response = await fetch(`${SPRING_BOOT_BASE_URL}/products`);
       const products = await response.json();
 
       if (query && Array.isArray(products)) {
