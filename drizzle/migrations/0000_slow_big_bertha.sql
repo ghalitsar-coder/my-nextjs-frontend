@@ -1,6 +1,8 @@
+CREATE SCHEMA "auth";
+--> statement-breakpoint
 CREATE TABLE "auth"."account" (
 	"id" varchar(255) PRIMARY KEY NOT NULL,
-	"user_id" varchar(255) NOT NULL,
+	"userId" varchar(255) NOT NULL,
 	"account_id" varchar(255) NOT NULL,
 	"provider_id" varchar(255) NOT NULL,
 	"access_token" text,
@@ -16,7 +18,7 @@ CREATE TABLE "auth"."account" (
 --> statement-breakpoint
 CREATE TABLE "auth"."session" (
 	"id" varchar(255) PRIMARY KEY NOT NULL,
-	"user_id" varchar(255) NOT NULL,
+	"userId" varchar(255) NOT NULL,
 	"token" varchar(255) NOT NULL,
 	"expires_at" timestamp NOT NULL,
 	"ip_address" varchar(45),
@@ -50,7 +52,5 @@ CREATE TABLE "auth"."verification" (
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-DROP TABLE "auth"."users" CASCADE;--> statement-breakpoint
-ALTER TABLE "auth"."account" ADD CONSTRAINT "account_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "auth"."user"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "auth"."session" ADD CONSTRAINT "session_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "auth"."user"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-DROP TYPE "auth"."user_role";
+ALTER TABLE "auth"."account" ADD CONSTRAINT "account_userId_user_id_fk" FOREIGN KEY ("userId") REFERENCES "auth"."user"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "auth"."session" ADD CONSTRAINT "session_userId_user_id_fk" FOREIGN KEY ("userId") REFERENCES "auth"."user"("id") ON DELETE no action ON UPDATE no action;

@@ -1,19 +1,32 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { createAuthMiddleware } from "better-auth/api";
 import axios from "axios";
 import { db } from "@/db/db";
+import {
+  accountsTable,
+  sessionsTable,
+  usersTable,
+  verificationsTable,
+} from "@/db/schema";
 
 console.log("Auth config loaded");
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
     provider: "pg",
+    schema: {
+      user: usersTable,
+      account: accountsTable,
+      session: sessionsTable,
+      verification: verificationsTable,
+    },
   }),
   emailAndPassword: {
     enabled: true,
   },
   user: {
-    modelName: "users",
+    modelName: "user",
     additionalFields: {
       username: {
         type: "string",
@@ -38,22 +51,6 @@ export const auth = betterAuth({
       },
     },
   },
-  onUserCreate: async (user, ctx) => {
-    try {
-      await axios.post(`${process.env.SPRING_BOOT_URL}/users`, {
-        user_id: user.id,
-        username: user.username,
-        email: user.email,
-        full_name: user.name,
-        phone_number: user.phone_number || null,
-        address: user.address || null,
-        role: user.role || "customer",
-      });
-      console.log("User data sent to Spring Boot:", user.email);
-    } catch (error) {
-      console.error("Failed to send user data to Spring Boot:", error);
-    }
-  },
   socialProviders: {
     google: {
       clientId: process.env.GOOGLE_CLIENT_ID!,
@@ -70,5 +67,76 @@ export const auth = betterAuth({
       sameSite: "lax",
       secure: process.env.NODE_ENV === "production",
     },
+  },
+  // Tambahkan hooks/callbacks
+  hooks: {
+    after: createAuthMiddleware(async (ctx) => {
+      // Check if this is a sign-up operation that created a new user
+      if (ctx.path.startsWith("/sign-up")) {
+        const newSession = ctx.context.newSession;
+        if (newSession && newSession.user) {
+          try {
+            console.log("New user created, sending to Spring Boot:", newSession.user);
+            
+            const response = await axios.post(
+              `${process.env.SPRING_BOOT_URL}/users`,
+              {
+                id: newSession.user.id,
+                email: newSession.user.email,
+                username: newSession.user.username || newSession.user.name,
+                phone_number: newSession.user.phone_number || null,
+                address: newSession.user.address || null,
+                role: newSession.user.role || "customer",
+                created_at: new Date().toISOString(),
+              },
+              {
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                timeout: 5000,
+              }
+            );
+            
+            console.log("User successfully created in Spring Boot:", response.data);
+          } catch (error) {
+            console.error("Failed to create user in Spring Boot:", error);
+            // Continue execution even if Spring Boot sync fails
+          }
+        }
+      }
+      
+      // Check for OAuth sign-up (Google)
+      if (ctx.path.includes("/oauth/") && ctx.path.includes("/callback")) {
+        const newSession = ctx.context.newSession;
+        if (newSession && newSession.user) {
+          try {
+            console.log("OAuth user created, sending to Spring Boot:", newSession.user);
+            
+            const response = await axios.post(
+              `${process.env.SPRING_BOOT_URL}/users`,
+              {
+                id: newSession.user.id,
+                email: newSession.user.email,
+                username: newSession.user.username || newSession.user.name,
+                phone_number: newSession.user.phone_number || null,
+                address: newSession.user.address || null,
+                role: newSession.user.role || "customer",
+                created_at: new Date().toISOString(),
+              },
+              {
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                timeout: 5000,
+              }
+            );
+            
+            console.log("OAuth user successfully created in Spring Boot:", response.data);
+          } catch (error) {
+            console.error("Failed to create OAuth user in Spring Boot:", error);
+          }
+        }
+      }
+    }),
   },
 });

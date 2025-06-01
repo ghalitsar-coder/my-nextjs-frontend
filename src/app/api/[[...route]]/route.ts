@@ -40,16 +40,39 @@ app.use("*", async (c, next) => {
 });
 
 app.on(["POST", "GET"], "/api/auth/*", async (c) => {
-  console.log("Auth Handler:", c.req.raw.method, c.req.raw.url, await c.req.json().catch(() => null));
+  let body = null;
+  if (c.req.raw.method === "POST") {
+    try {
+      body = await c.req.json();
+    } catch (e) {
+      console.error("Failed to parse JSON body:", e);
+    }
+  }
+
+  console.log("Auth Handler:", c.req.raw.method, c.req.raw.url, body);
+
   try {
-    const response = await auth.handler(c.req.raw);
-    console.log("Auth Handler Response:", response.status, await response.text());
-    return response;
+    const request = new Request(c.req.raw, {
+      body: body ? JSON.stringify(body) : null,
+      headers: c.req.raw.headers,
+      method: c.req.raw.method,
+    });
+
+    const response = await auth.handler(request);
+    // Baca body respons sekali
+    const responseBody = await response.text();
+    console.log("Auth Handler Response:", response.status, responseBody);
+    // Buat respons baru dengan body yang sama
+    return new Response(responseBody, {
+      status: response.status,
+      headers: response.headers,
+    });
   } catch (error) {
     console.error("Auth Handler Error:", error);
     return c.json({ error: "Internal server error" }, 500);
   }
 });
+
 
 app.get("/api/session", (c) => {
   const session = c.get("session");

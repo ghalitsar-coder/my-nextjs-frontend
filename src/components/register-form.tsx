@@ -13,7 +13,6 @@ import { Label } from "@/components/ui/label";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
-import axios from "axios";
 
 export function RegisterForm({
   className,
@@ -27,7 +26,6 @@ export function RegisterForm({
   const [address, setAddress] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const router = useRouter();
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,8 +33,7 @@ export function RegisterForm({
     setError(null);
 
     try {
-      await axios.post(
-        "/api/auth/sign-up",
+      await authClient.signUp.email(
         {
           email,
           password,
@@ -45,15 +42,14 @@ export function RegisterForm({
           phone_number: phoneNumber || null,
           address: address || null,
         },
-        { withCredentials: true }
+        {
+          onSuccess: (a, b, c) => {
+            console.log(`THIS IS  c:`, c);
+            console.log(`THIS IS  b:`, b);
+            console.log(`THIS IS  a:`, a);
+          },
+        }
       );
-      await axios.post(
-        "/api/auth/sign-in",
-        { email, password },
-        { withCredentials: true }
-      );
-
-      router.push("/dashboard");
     } catch (err: any) {
       setError(err.response?.data?.error || "Registration failed");
     } finally {
@@ -63,7 +59,9 @@ export function RegisterForm({
 
   const handleGoogleSignUp = async () => {
     try {
-      window.location.href = "/api/auth/google";
+      await authClient.signIn.social({
+        provider: "google",
+      });
     } catch (err: any) {
       setError("Google sign-up failed");
     }

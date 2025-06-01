@@ -20,7 +20,7 @@ export const usersTable = authSchema.table("user", {
 // Tabel session
 export const sessionsTable = authSchema.table("session", {
   id: varchar("id", { length: 255 }).primaryKey(),
-  userId: varchar("user_id", { length: 255 }).notNull().references(() => usersTable.id),
+  userId: varchar("userId", { length: 255 }).notNull().references(() => usersTable.id),
   token: varchar("token", { length: 255 }).notNull(),
   expiresAt: timestamp("expires_at").notNull(),
   ipAddress: varchar("ip_address", { length: 45 }),
@@ -32,7 +32,7 @@ export const sessionsTable = authSchema.table("session", {
 // Tabel account
 export const accountsTable = authSchema.table("account", {
   id: varchar("id", { length: 255 }).primaryKey(),
-  userId: varchar("user_id", { length: 255 }).notNull().references(() => usersTable.id),
+  userId: varchar("userId", { length: 255 }).notNull().references(() => usersTable.id),
   accountId: varchar("account_id", { length: 255 }).notNull(),
   providerId: varchar("provider_id", { length: 255 }).notNull(),
   accessToken: text("access_token"),

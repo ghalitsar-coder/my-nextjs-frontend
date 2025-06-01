@@ -5,43 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1748374348810,
-      "tag": "0000_parched_white_queen",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1748425473113,
-      "tag": "0001_deep_human_robot",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1748627343551,
-      "tag": "0002_sad_puck",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1748672744490,
-      "tag": "0003_brown_lester",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "7",
-      "when": 1748673860721,
-      "tag": "0004_overrated_tony_stark",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "7",
-      "when": 1748738886107,
-      "tag": "0005_confused_silhouette",
+      "when": 1748744499757,
+      "tag": "0000_slow_big_bertha",
       "breakpoints": true
     }
   ]
