@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useSession } from "@/lib/auth-client";
 
 // Interface matching the backend Product entity
 interface Product {
@@ -35,6 +36,16 @@ export default function MenuSection() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [categories, setCategories] = useState<string[]>(["All"]);
+
+  // Use the Better Auth React hook correctly
+  const { data: session, isPending: sessionLoading } = useSession();
+
+  // Log session data when it's available
+  useEffect(() => {
+    if (!sessionLoading) {
+      console.log(`THIS IS session data:`, session);
+    }
+  }, [session, sessionLoading]);
   // Default coffee images for products that don't have images
   const getDefaultImage = (categoryName: string): string => {
     const imageMap: { [key: string]: string } = {

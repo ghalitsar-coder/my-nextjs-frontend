@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useEffect } from "react";
 import Link from "next/link";
 import {
   IconChartBar,
@@ -28,7 +29,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { authClient } from "@/lib/auth-client";
+import { useSession } from "@/lib/auth-client";
 
 // Admin navigation - full access
 const adminNavigation = [
@@ -47,7 +48,7 @@ const adminNavigation = [
         url: "/dashboard/admin/analytics/daily",
       },
       {
-        title: "Monthly Reports", 
+        title: "Monthly Reports",
         url: "/dashboard/admin/analytics/monthly",
       },
       {
@@ -245,13 +246,23 @@ interface UserWithRole {
   id: string;
   name: string;
   email: string;
+  username?: string;
+  phone_number?: string;
+  address?: string;
   role?: string;
+  emailVerified?: boolean;
+  image?: string;
+  createdAt?: Date;
+  updatedAt?: Date;
   [key: string]: unknown;
 }
 
-export function RoleBasedSidebar({ variant = "sidebar" }: RoleBasedSidebarProps) {
-  const { data: session, isPending } = authClient.useSession();
-  
+export function RoleBasedSidebar({
+  variant = "sidebar",
+}: RoleBasedSidebarProps) {
+  const { data: session, isPending } = useSession();
+ 
+  console.log(`User role:`, session?.user?.role);
   // Default navigation while loading
   const defaultNavigation = [
     {
@@ -260,30 +271,76 @@ export function RoleBasedSidebar({ variant = "sidebar" }: RoleBasedSidebarProps)
       icon: IconDashboard,
     },
   ];
-
   // Determine navigation based on user role
   const getNavigationByRole = () => {
-    if (isPending || !session?.user) {
-      return defaultNavigation;
+    if (isPending) {
+      return defaultNavigation; // Show default while loading
+    }
+
+    if (!session?.user) {
+      return defaultNavigation; // Show default if no session
     }
 
     // Handle different possible role field names
     const user = session.user as UserWithRole;
     const userRole = user.role || "customer";
-    
+
+    console.log(`Determined user role: ${userRole}`);
+
     switch (userRole) {
       case "admin":
         return adminNavigation;
       case "cashier":
         return cashierNavigation;
+      case "customer":
+        return defaultNavigation; // Customers get basic navigation
       default:
         return defaultNavigation;
     }
   };
-
   const navigationData = getNavigationByRole();
   const user = session?.user as UserWithRole;
   const userRole = user?.role || "guest";
+
+  // Loading state for sidebar
+  if (isPending) {
+    return (
+      <Sidebar variant={variant}>
+        <SidebarHeader>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton size="lg" asChild>
+                <div className="animate-pulse">
+                  <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-gray-200">
+                    <IconCoffee className="size-4" />
+                  </div>
+                  <div className="grid flex-1 text-left text-sm leading-tight">
+                    <div className="h-4 bg-gray-200 rounded truncate"></div>
+                    <div className="h-3 bg-gray-200 rounded truncate mt-1"></div>
+                  </div>
+                </div>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarHeader>
+        <SidebarContent>
+          <div className="p-4 space-y-2">
+            {[1, 2, 3].map((item) => (
+              <div
+                key={item}
+                className="h-8 bg-gray-200 rounded animate-pulse"
+              ></div>
+            ))}
+          </div>
+        </SidebarContent>
+        <SidebarFooter>
+          <div className="p-4">
+            <div className="h-10 bg-gray-200 rounded animate-pulse"></div>
+          </div>
+        </SidebarFooter>
+      </Sidebar>
+    );
+  }
 
   return (
     <Sidebar variant={variant}>
@@ -306,18 +363,18 @@ export function RoleBasedSidebar({ variant = "sidebar" }: RoleBasedSidebarProps)
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
-      
+
       <SidebarContent>
         <NavMain items={navigationData} />
       </SidebarContent>
-      
+
       <SidebarFooter>
-        <NavUser 
+        <NavUser
           user={{
             name: user?.name || "Guest",
             email: user?.email || "",
             avatar: "/avatars/default.jpg",
-          }} 
+          }}
         />
       </SidebarFooter>
     </Sidebar>

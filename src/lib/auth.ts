@@ -24,6 +24,8 @@ export const auth = betterAuth({
   }),
   emailAndPassword: {
     enabled: true,
+    requireEmailVerification: false, // Set to true if you want email verification
+    
   },
   user: {
     modelName: "user",
@@ -55,7 +57,7 @@ export const auth = betterAuth({
     google: {
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-      redirectURI: "http://localhost:3000/api/auth/google/callback",
+      redirectURI: "http://localhost:3000/api/auth/callback/google",
     },
   },
   secret: process.env.NEXT_AUTH_SECRET!,
@@ -68,7 +70,6 @@ export const auth = betterAuth({
       secure: process.env.NODE_ENV === "production",
     },
   },
-  // Tambahkan hooks/callbacks
   hooks: {
     after: createAuthMiddleware(async (ctx) => {
       // Check if this is a sign-up operation that created a new user
@@ -106,7 +107,7 @@ export const auth = betterAuth({
       }
       
       // Check for OAuth sign-up (Google)
-      if (ctx.path.includes("/oauth/") && ctx.path.includes("/callback")) {
+      if (ctx.path.includes("/callback") && ctx.path.includes("google")) {
         const newSession = ctx.context.newSession;
         if (newSession && newSession.user) {
           try {
@@ -117,7 +118,7 @@ export const auth = betterAuth({
               {
                 id: newSession.user.id,
                 email: newSession.user.email,
-                username: newSession.user.username || newSession.user.name,
+                username: newSession.user.username || newSession.user.name || newSession.user.email.split('@')[0],
                 phone_number: newSession.user.phone_number || null,
                 address: newSession.user.address || null,
                 role: newSession.user.role || "customer",
@@ -140,3 +141,6 @@ export const auth = betterAuth({
     }),
   },
 });
+
+export type Session = typeof auth.$Infer.Session;
+export type User = typeof auth.$Infer.User;

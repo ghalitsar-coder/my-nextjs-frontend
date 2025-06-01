@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function HeroSection() {
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId);
@@ -37,18 +39,17 @@ export default function HeroSection() {
           coffee beans roasted to perfection by our master roasters.
         </p>
         <div className="flex flex-col sm:flex-row justify-center gap-4">
-          <button
-            onClick={() => scrollToSection("menu")}
-            className="btn-cta text-white font-semibold py-4 px-10 rounded-full inline-flex items-center justify-center"
-          >
-            View Our Menu <i className="fas fa-chevron-right ml-2 text-sm"></i>
-          </button>
-          <button
-            onClick={() => scrollToSection("order")}
-            className="border-2 border-white/40 text-white font-semibold py-4 px-10 rounded-full hover:border-white/80 transition inline-flex items-center justify-center"
-          >
-            <i className="fas fa-mobile-screen-button mr-2"></i> Order Now
-          </button>
+          <Link href="/dashboard/admin">
+            <button className="btn-cta text-white font-semibold py-4 px-10 rounded-full inline-flex items-center justify-center">
+              View Our Menu{" "}
+              <i className="fas fa-chevron-right ml-2 text-sm"></i>
+            </button>
+          </Link>
+          <Link href="/dashboard/cashier">
+            <button className="border-2 border-white/40 text-white font-semibold py-4 px-10 rounded-full hover:border-white/80 transition inline-flex items-center justify-center">
+              <i className="fas fa-mobile-screen-button mr-2"></i> Order Now
+            </button>
+          </Link>
         </div>
       </div>
 
