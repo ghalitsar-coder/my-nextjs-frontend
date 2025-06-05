@@ -77,18 +77,18 @@ export const auth = betterAuth({
         const newSession = ctx.context.newSession;
         if (newSession && newSession.user) {
           try {
-            console.log("New user created, sending to Spring Boot:", newSession.user);
+          console.log("New user created, sending to Spring Boot:", newSession.user);
             
             const response = await axios.post(
-              `${process.env.SPRING_BOOT_URL}/users-fixed`,
+              `${process.env.SPRING_BOOT_URL}/users`,
               {
                 id: newSession.user.id,
                 email: newSession.user.email,
-                username: newSession.user.username || newSession.user.name,
-                phone_number: newSession.user.phone_number || null,
+                fullName: newSession.user.name,
+                username: newSession.user.username ,
+                phoneNumber: newSession.user.phone_number || null,
                 address: newSession.user.address || null,
-                role: newSession.user.role || "customer",
-                created_at: new Date().toISOString(),
+
               },
               {
                 headers: {
