@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useSession } from "@/lib/auth-client";
+import { productApi } from "@/lib/api";
 
 // Interface matching the backend Product entity
 interface Product {
@@ -37,15 +37,6 @@ export default function MenuSection() {
   const [error, setError] = useState<string | null>(null);
   const [categories, setCategories] = useState<string[]>(["All"]);
 
-  // Use the Better Auth React hook correctly
-  const { data: session, isPending: sessionLoading } = useSession();
-
-  // Log session data when it's available
-  useEffect(() => {
-    if (!sessionLoading) {
-      console.log(`THIS IS session data:`, session);
-    }
-  }, [session, sessionLoading]);
   // Default coffee images for products that don't have images
   const getDefaultImage = (categoryName: string): string => {
     const imageMap: { [key: string]: string } = {
@@ -92,7 +83,6 @@ export default function MenuSection() {
       return `$${price.toFixed(2)}`;
     }
   };
-
   // Fetch products from backend
   useEffect(() => {
     const fetchProducts = async () => {
@@ -100,15 +90,7 @@ export default function MenuSection() {
         setLoading(true);
         setError(null);
 
-        const response = await fetch(
-          "http://localhost:8080/api/products/available"
-        );
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data: Product[] = await response.json();
+        const data: Product[] = await productApi.getAll();
         setProducts(data);
 
         // Extract unique categories from products

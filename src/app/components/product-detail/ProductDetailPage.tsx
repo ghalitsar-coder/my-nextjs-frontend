@@ -7,7 +7,14 @@ import ProductInfo from "./ProductInfo";
 import ProductTabs from "./ProductTabs";
 import RelatedProducts from "./RelatedProducts";
 import Breadcrumb from "./Breadcrumb";
-import { Product, RelatedProduct, BackendProduct } from "./types";
+import {
+  Product,
+  RelatedProduct,
+  BackendProduct,
+  ProductAttributes,
+} from "./types";
+import { productApi } from "@/lib/api";
+import { AxiosError } from "axios";
 
 interface ProductDetailPageProps {
   productId?: string;
@@ -50,39 +57,41 @@ const generateDefaultImages = (categoryName: string, productName: string) => [
   },
 ];
 
-const generateDefaultAttributes = (categoryName: string) => {
-  const attributeMap: { [key: string]: { [key: string]: string } } = {
+const generateDefaultAttributes = (categoryName: string): ProductAttributes => {
+  const attributeMap: { [key: string]: ProductAttributes } = {
     Coffee: {
-      origin: "Single Origin",
-      roastLevel: "Medium",
-      process: "Washed",
+      region: "Single Origin",
       altitude: "1,200-1,800m",
+      process: "Washed",
       varietal: "Arabica",
+      roastLevel: "Medium",
       bestFor: "Pour Over, French Press, Espresso",
     },
     Tea: {
-      type: "Premium Tea",
-      origin: "High Altitude",
+      region: "High Altitude",
+      altitude: "1,500-2,000m",
       process: "Traditional",
-      caffeine: "Moderate",
+      varietal: "Premium Leaf",
+      roastLevel: "None",
       bestFor: "Hot or Iced",
-      steepTime: "3-5 minutes",
     },
     Pastry: {
-      type: "Fresh Baked",
-      ingredients: "Premium Quality",
-      texture: "Light & Fluffy",
-      sweetness: "Balanced",
-      bestWith: "Coffee or Tea",
-      freshness: "Daily Baked",
+      region: "Local Bakery",
+      altitude: "Sea Level",
+      process: "Fresh Baked",
+      varietal: "Premium Ingredients",
+      roastLevel: "Baked Golden",
+      bestFor: "Coffee or Tea",
     },
   };
 
   return (
     attributeMap[categoryName] || {
-      quality: "Premium",
-      origin: "Carefully Selected",
-      preparation: "Artisan Made",
+      region: "Carefully Selected",
+      altitude: "Various",
+      process: "Artisan Made",
+      varietal: "Premium Quality",
+      roastLevel: "Balanced",
       bestFor: "Any Time",
     }
   );
@@ -159,6 +168,7 @@ export default function ProductDetailPage({
   const [error, setError] = useState<string | null>(null);
 
   const router = useRouter();
+
   // Fetch product details
   useEffect(() => {
     const fetchProductData = async () => {
@@ -170,52 +180,41 @@ export default function ProductDetailPage({
 
       setLoading(true);
       try {
-        // Fetch product from backend
-        const response = await fetch(
-          `http://localhost:8080/api/products/${productId}`
+        // Fetch product from backend using API helper
+        const backendProduct: BackendProduct = await productApi.getById(
+          productId
         );
-
-        if (!response.ok) {
-          if (response.status === 404) {
-            setError("Product not found");
-          } else {
-            setError("Failed to load product details");
-          }
-          setLoading(false);
-          return;
-        }
-
-        const backendProduct: BackendProduct = await response.json();
 
         // Convert backend product to frontend format
         const convertedProduct: Product =
           convertBackendToFrontend(backendProduct);
-        setProduct(convertedProduct); // Fetch related products (same category, excluding current product)
-        const relatedResponse = await fetch(
-          "http://localhost:8080/api/products/available"
-        );
-        if (relatedResponse.ok) {
-          const allProducts: BackendProduct[] = await relatedResponse.json();
-          const related = allProducts
-            .filter(
-              (p) =>
-                p.category.name === backendProduct.category.name &&
-                p.productId !== backendProduct.productId
-            )
-            .slice(0, 4) // Limit to 4 related products
-            .map((p) => ({
-              id: p.productId.toString(),
-              name: p.name,
-              description:
-                p.description || "Delicious coffee crafted with care",
-              price: p.price,
-              image: getDefaultImage(p.category.name),
-            }));
-          setRelatedProducts(related);
-        }
+        setProduct(convertedProduct);
+
+        // Fetch related products (same category, excluding current product)
+        const allProducts: BackendProduct[] = await productApi.getAll();
+        const related = allProducts
+          .filter(
+            (p) =>
+              p.category.name === backendProduct.category.name &&
+              p.productId !== backendProduct.productId
+          )
+          .slice(0, 4) // Limit to 4 related products
+          .map((p) => ({
+            id: p.productId.toString(),
+            name: p.name,
+            description: p.description || "Delicious coffee crafted with care",
+            price: p.price,
+            image: getDefaultImage(p.category.name),
+          }));
+        setRelatedProducts(related);
       } catch (error) {
         console.error("Error fetching product:", error);
-        setError("Failed to load product details. Please try again later.");
+        const axiosError = error as AxiosError;
+        if (axiosError.response?.status === 404) {
+          setError("Product not found");
+        } else {
+          setError("Failed to load product details. Please try again later.");
+        }
       } finally {
         setLoading(false);
       }
@@ -223,153 +222,6 @@ export default function ProductDetailPage({
 
     fetchProductData();
   }, [productId]);
-
-  // Helper function to convert backend product to frontend format
-  const convertBackendToFrontend = (
-    backendProduct: BackendProduct
-  ): Product => {
-    return {
-      id: backendProduct.productId.toString(),
-      name: backendProduct.name,
-      price: backendProduct.price,
-      sizes: generateDefaultSizes(backendProduct.price),
-      grindOptions: generateDefaultGrindOptions(),
-      description:
-        backendProduct.description || "Delicious coffee crafted with care",
-      rating: 4.5 + Math.random() * 0.5, // Random rating for demo
-      reviewCount: Math.floor(Math.random() * 50) + 10, // Random review count
-      images: generateDefaultImages(
-        backendProduct.category.name,
-        backendProduct.name
-      ),
-      stockCount: backendProduct.stock,
-      attributes: generateDefaultAttributes(backendProduct.category.name),
-      detailedDescription: [
-        backendProduct.description ||
-          "Our carefully selected coffee beans are roasted to perfection.",
-        "Each cup delivers a rich, aromatic experience that coffee enthusiasts will appreciate.",
-        "Perfect for any time of day, whether you're starting your morning or enjoying an afternoon break.",
-      ],
-      sustainability:
-        "This coffee comes from our direct trade partnerships with local farmers. We pay fair prices and support community development initiatives.",
-      tastingNotes: generateTastingNotes(backendProduct.category.name),
-      category: backendProduct.category,
-      isAvailable: backendProduct.isAvailable,
-    };
-  };
-
-  // Helper functions to generate default values
-  const generateDefaultSizes = (basePrice: number) => [
-    { id: 1, name: "8oz", price: basePrice * 0.85 },
-    { id: 2, name: "12oz", price: basePrice, default: true },
-    { id: 3, name: "16oz", price: basePrice * 1.15 },
-  ];
-
-  const generateDefaultGrindOptions = () => [
-    { id: 1, name: "Whole Bean" },
-    { id: 2, name: "Coarse Grind" },
-    { id: 3, name: "Medium Grind", default: true },
-    { id: 4, name: "Fine Grind" },
-  ];
-
-  const generateDefaultImages = (categoryName: string, productName: string) => [
-    {
-      id: 1,
-      url: getDefaultImage(categoryName),
-      alt: productName,
-    },
-    {
-      id: 2,
-      url: "https://images.unsplash.com/photo-1524350876685-274059332603?ixlib=rb-1.2.1&auto=format&fit=crop&w=634&q=80",
-      alt: "Coffee Beans",
-    },
-    {
-      id: 3,
-      url: "https://images.unsplash.com/photo-1551782450-a2132b4ba21d?ixlib=rb-1.2.1&auto=format&fit=crop&w=634&q=80",
-      alt: "Coffee Farm",
-    },
-    {
-      id: 4,
-      url: "https://images.unsplash.com/photo-1461023058943-07fcbe16d735?ixlib=rb-1.2.1&auto=format&fit=crop&w=634&q=80",
-      alt: "Coffee Preparation",
-    },
-  ];
-
-  const generateDefaultAttributes = (categoryName: string) => {
-    const attributeMap: { [key: string]: any } = {
-      Coffee: {
-        origin: "Single Origin",
-        roastLevel: "Medium",
-        process: "Washed",
-        altitude: "1,200-1,800m",
-        varietal: "Arabica",
-        bestFor: "Pour Over, French Press, Espresso",
-      },
-      Tea: {
-        type: "Premium Tea",
-        origin: "High Altitude",
-        process: "Traditional",
-        caffeine: "Moderate",
-        bestFor: "Hot or Iced",
-        steepTime: "3-5 minutes",
-      },
-      Pastry: {
-        type: "Fresh Baked",
-        ingredients: "Premium Quality",
-        texture: "Light & Fluffy",
-        sweetness: "Balanced",
-        bestWith: "Coffee or Tea",
-        freshness: "Daily Baked",
-      },
-    };
-
-    return (
-      attributeMap[categoryName] || {
-        quality: "Premium",
-        origin: "Carefully Selected",
-        preparation: "Artisan Made",
-        bestFor: "Any Time",
-      }
-    );
-  };
-
-  const generateTastingNotes = (categoryName: string) => {
-    const notesMap: { [key: string]: string[] } = {
-      Coffee: ["Rich", "Smooth", "Aromatic", "Balanced", "Full-bodied"],
-      Tea: ["Delicate", "Refreshing", "Floral", "Crisp", "Soothing"],
-      Pastry: ["Sweet", "Buttery", "Fresh", "Light", "Indulgent"],
-      Sandwich: ["Savory", "Fresh", "Hearty", "Satisfying", "Balanced"],
-      Merchandise: ["Quality", "Durable", "Stylish", "Functional", "Premium"],
-    };
-
-    return (
-      notesMap[categoryName] || ["Quality", "Premium", "Crafted", "Excellence"]
-    );
-  };
-
-  // Get default image based on category
-  const getDefaultImage = (categoryName: string): string => {
-    const imageMap: { [key: string]: string } = {
-      Coffee:
-        "https://images.unsplash.com/photo-1522992319-0365e5f11656?ixlib=rb-1.2.1&auto=format&fit=crop&w=1200&q=80",
-      Tea: "https://images.unsplash.com/photo-1556679343-c7306c1976bc?ixlib=rb-1.2.1&auto=format&fit=crop&w=1200&q=80",
-      Pastry:
-        "https://images.unsplash.com/photo-1555507036-ab794f4afe5d?ixlib=rb-1.2.1&auto=format&fit=crop&w=1200&q=80",
-      Sandwich:
-        "https://images.unsplash.com/photo-1539252554453-80ab65ce3586?ixlib=rb-1.2.1&auto=format&fit=crop&w=1200&q=80",
-      Merchandise:
-        "https://images.unsplash.com/photo-1544787219-7f47ccb76574?ixlib=rb-1.2.1&auto=format&fit=crop&w=1200&q=80",
-    };
-    return imageMap[categoryName] || imageMap.Coffee;
-  };
-  // Format price based on the currency (same as MenuSection)
-  const formatPrice = (price: number): string => {
-    if (price >= 1000) {
-      return `Rp ${price.toLocaleString("id-ID")}`;
-    } else {
-      return `$${price.toFixed(2)}`;
-    }
-  };
 
   if (loading) {
     return (

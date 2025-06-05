@@ -6,6 +6,7 @@ import Image from "next/image";
 import ProgressSteps from "./ProgressSteps";
 import { ORDER_FLOW_STEPS, getStepInfo } from "./StepsConfig";
 import { useCartStore } from "@/store/cart-store";
+import { useSession } from "@/lib/auth-client";
 
 // Define payment method type
 type PaymentMethod = "cash" | "card" | "digital";
@@ -46,7 +47,8 @@ export default function PaymentPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [notes, setNotes] = useState("");
   const [promoCode, setPromoCode] = useState("");
-
+  const { data: session } = useSession();
+  console.log(`THIS IS  session:`, session?.session?.userId);
   // Load discount from localStorage
   useEffect(() => {
     const savedDiscount = localStorage.getItem("coffee-discount");
@@ -208,6 +210,7 @@ export default function PaymentPage() {
           paymentMethod: paymentMethod,
           paymentStatus: "pending",
           notes: notes,
+          userId:session?.session?.userId
         }),
       });
 

@@ -80,7 +80,7 @@ export const auth = betterAuth({
             console.log("New user created, sending to Spring Boot:", newSession.user);
             
             const response = await axios.post(
-              `${process.env.SPRING_BOOT_URL}/users`,
+              `${process.env.SPRING_BOOT_URL}/users-fixed`,
               {
                 id: newSession.user.id,
                 email: newSession.user.email,
@@ -114,7 +114,7 @@ export const auth = betterAuth({
             console.log("OAuth user created, sending to Spring Boot:", newSession.user);
             
             const response = await axios.post(
-              `${process.env.SPRING_BOOT_URL}/users`,
+              `${process.env.SPRING_BOOT_URL}/users-fixed`,
               {
                 id: newSession.user.id,
                 email: newSession.user.email,

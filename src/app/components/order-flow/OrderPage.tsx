@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import ProgressSteps from "./ProgressSteps";
 import { ORDER_FLOW_STEPS, getStepInfo } from "./StepsConfig";
 import { useCartStore } from "@/store/cart-store";
+import { productApi } from "@/lib/api";
 
 // Backend Product interface (matching Spring Boot entity)
 interface BackendProduct {
@@ -48,7 +49,6 @@ export default function OrderPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [categories, setCategories] = useState<string[]>(["All Items"]);
-
   // Fetch real products from backend
   useEffect(() => {
     const fetchProducts = async () => {
@@ -56,15 +56,9 @@ export default function OrderPage() {
         setLoading(true);
         setError(null);
 
-        const response = await fetch(
-          "http://localhost:8080/api/products/available"
-        );
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const backendProducts: BackendProduct[] = await response.json();
+        // Use API helper to fetch available products
+        const backendProducts: BackendProduct[] =
+          await productApi.getAvailable();
 
         // Convert backend products to frontend menu items
         const convertedItems: MenuItem[] = backendProducts.map((product) => ({

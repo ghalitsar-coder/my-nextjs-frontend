@@ -211,6 +211,22 @@ app.get("/api/products", async (c) => {
   }
 });
 
+// Get individual product by ID
+app.get("/api/products/:id", async (c) => {
+  try {
+    const id = c.req.param("id");
+    const response = await fetch(`${SPRING_BOOT_BASE_URL}/products/${id}`);
+    if (!response.ok) {
+      return c.json({ error: "Product not found" }, 404);
+    }
+    const data = await response.json();
+    return c.json(data);
+  } catch (error) {
+    console.error("Error fetching product:", error);
+    return c.json({ error: "Failed to fetch product" }, 500);
+  }
+});
+
 app.post("/api/products", async (c) => {
   try {
     const body = await c.req.json();
@@ -244,18 +260,75 @@ app.get("/api/orders", async (c) => {
 app.post("/api/orders", async (c) => {
   try {
     const body = await c.req.json();
+    const { orderItems, totalAmount, paymentMethod, transactionId } = body;
+
+    console.log("Hono - Received order request:", JSON.stringify(body, null, 2));
+
+    // Validate required fields
+    if (!orderItems || orderItems.length === 0) {
+      return c.json({ error: "Order items are required" }, 400);
+    }
+
+    if (!totalAmount || totalAmount <= 0) {
+      return c.json({ error: "Valid total amount is required" }, 400);
+    }
+
+    if (!paymentMethod || !["cash", "card", "digital"].includes(paymentMethod)) {
+      return c.json({ error: "Valid payment method is required" }, 400);
+    }
+
+    // Prepare order data for backend in the correct format that Spring Boot expects
+    // Using default userId = "1" to focus on order creation
+    const orderData = {
+      userId: "1", // Default user ID
+      items: orderItems.map((item: { id?: number; quantity: number }) => ({
+        productId: item.id || 1, // Map to actual product ID
+        quantity: item.quantity,
+      })),
+      paymentInfo: {
+        type: paymentMethod, // "cash", "card", "digital"
+        transactionId: transactionId || `txn_${Date.now()}`, // Generate transaction ID if not provided
+        paymentMethod: paymentMethod,
+      },
+    };
+
+    console.log("Hono - Sending order to Spring Boot:", JSON.stringify(orderData, null, 2));
+
     const response = await fetch(`${SPRING_BOOT_BASE_URL}/orders`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(body),
+      body: JSON.stringify(orderData),
     });
-    const data = await response.json();
-    return c.json(data);
+
+    console.log("Spring Boot response status:", response.status);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Spring Boot error response:", errorText);
+      return c.json({ 
+        error: "Backend error",
+        details: errorText,
+        status: response.status
+      }, response.status);
+    }
+
+    const savedOrder = await response.json();
+    console.log("Order saved successfully:", savedOrder);
+
+    return c.json({
+      success: true,
+      orderId: savedOrder.id,
+      message: "Order created successfully",
+      order: savedOrder
+    });
   } catch (error) {
     console.error("Error creating order:", error);
-    return c.json({ error: "Failed to create order" }, 500);
+    return c.json({ 
+      error: "Failed to create order",
+      details: error instanceof Error ? error.message : "Unknown error"
+    }, 500);
   }
 });
 
