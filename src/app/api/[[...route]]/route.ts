@@ -167,10 +167,9 @@ app.put("/api/users/:id/role", async (c) => {
       }
     );
     if (!response.ok) {
-      const errorText = await response.text();
-      return c.json(
+      const errorText = await response.text();      return c.json(
         { error: errorText || "Failed to update user role" },
-        response.status
+        500
       );
     }
     const data = await response.json();
@@ -260,36 +259,24 @@ app.get("/api/orders", async (c) => {
 app.post("/api/orders", async (c) => {
   try {
     const body = await c.req.json();
-    const { orderItems, totalAmount, paymentMethod, transactionId } = body;
+    const { userId, items, paymentInfo } = body;
 
     console.log("Hono - Received order request:", JSON.stringify(body, null, 2));
 
     // Validate required fields
-    if (!orderItems || orderItems.length === 0) {
+    if (!items || items.length === 0) {
       return c.json({ error: "Order items are required" }, 400);
     }
 
-    if (!totalAmount || totalAmount <= 0) {
-      return c.json({ error: "Valid total amount is required" }, 400);
+    if (!paymentInfo) {
+      return c.json({ error: "Payment information is required" }, 400);
     }
 
-    if (!paymentMethod || !["cash", "card", "digital"].includes(paymentMethod)) {
-      return c.json({ error: "Valid payment method is required" }, 400);
-    }
-
-    // Prepare order data for backend in the correct format that Spring Boot expects
-    // Using default userId = "1" to focus on order creation
+    // Use the order data as-is since frontend now sends the correct format
     const orderData = {
-      userId: "1", // Default user ID
-      items: orderItems.map((item: { id?: number; quantity: number }) => ({
-        productId: item.id || 1, // Map to actual product ID
-        quantity: item.quantity,
-      })),
-      paymentInfo: {
-        type: paymentMethod, // "cash", "card", "digital"
-        transactionId: transactionId || `txn_${Date.now()}`, // Generate transaction ID if not provided
-        paymentMethod: paymentMethod,
-      },
+      userId: userId || "1", // Use provided userId or default to "1"
+      items: items,
+      paymentInfo: paymentInfo,
     };
 
     console.log("Hono - Sending order to Spring Boot:", JSON.stringify(orderData, null, 2));
@@ -302,16 +289,13 @@ app.post("/api/orders", async (c) => {
       body: JSON.stringify(orderData),
     });
 
-    console.log("Spring Boot response status:", response.status);
-
-    if (!response.ok) {
+    console.log("Spring Boot response status:", response.status);    if (!response.ok) {
       const errorText = await response.text();
       console.error("Spring Boot error response:", errorText);
       return c.json({ 
         error: "Backend error",
-        details: errorText,
-        status: response.status
-      }, response.status);
+        details: errorText
+      }, 500); // Use a standard status code
     }
 
     const savedOrder = await response.json();

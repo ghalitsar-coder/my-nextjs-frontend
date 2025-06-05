@@ -8,8 +8,16 @@ import { ORDER_FLOW_STEPS, getStepInfo } from "./StepsConfig";
 import { useCartStore } from "@/store/cart-store";
 import { useSession } from "@/lib/auth-client";
 
-// Define payment method type
-type PaymentMethod = "cash" | "card" | "digital";
+// Define payment method type to match backend PaymentType enum
+type PaymentMethod =
+  | "cash"
+  | "card"
+  | "digital"
+  | "credit_card"
+  | "debit_card"
+  | "bank_transfer"
+  | "e_wallet"
+  | "virtual_account";
 
 // Midtrans payment result interface
 interface MidtransPaymentResult {
@@ -150,8 +158,7 @@ export default function PaymentPage() {
       console.error("Error creating Midtrans transaction:", error);
       throw error;
     }
-  };
-  // Process payment
+  }; // Process payment
   const processPayment = async () => {
     if (items.length === 0) {
       alert("Your cart is empty. Please add items before checkout.");
@@ -164,11 +171,22 @@ export default function PaymentPage() {
       if (paymentMethod === "cash") {
         // For cash payment, save order directly and redirect
         await saveCashOrder();
-      } else if (paymentMethod === "digital") {
-        // For digital payment, use Midtrans
+      } else if (
+        [
+          "digital",
+          "card",
+          "credit_card",
+          "debit_card",
+          "e_wallet",
+          "bank_transfer",
+          "virtual_account",
+        ].includes(paymentMethod)
+      ) {
+        // For all digital payment methods, use Midtrans
         await processMidtransPayment();
-      } else if (paymentMethod === "card") {
-        // For card payment, also use Midtrans
+      } else {
+        // Fallback for any new payment methods
+        console.warn(`Unhandled payment method: ${paymentMethod}`);
         await processMidtransPayment();
       }
     } catch (error) {
@@ -202,15 +220,19 @@ export default function PaymentPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          orderItems: orderItems.map((item) => ({
-            id: item.id,
+          userId: session?.session?.userId,
+          items: orderItems.map((item) => ({
+            productId: item.id,
             quantity: item.quantity,
           })),
-          totalAmount: parseFloat(calculateTotal()),
-          paymentMethod: paymentMethod,
-          paymentStatus: "pending",
-          notes: notes,
-          userId:session?.session?.userId
+          paymentInfo: {
+            type: paymentMethod.toUpperCase(),
+            paymentMethod: paymentMethod,
+            transactionId: null,
+            bank: null,
+            vaNumber: null,
+            threeDs: null,
+          },
         }),
       });
 
@@ -298,16 +320,19 @@ export default function PaymentPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          orderItems: orderItems.map((item) => ({
-            id: item.id,
+          userId: session?.session?.userId,
+          items: orderItems.map((item) => ({
+            productId: item.id,
             quantity: item.quantity,
           })),
-          totalAmount: parseFloat(calculateTotal()),
-          paymentMethod: paymentMethod,
-          paymentStatus: "completed",
-          notes: notes,
-          transactionId: paymentResult.transaction_id,
-          paymentType: paymentResult.payment_type,
+          paymentInfo: {
+            type: paymentResult.payment_type?.toUpperCase() || "DIGITAL",
+            paymentMethod: paymentMethod,
+            transactionId: paymentResult.transaction_id,
+            bank: null,
+            vaNumber: null,
+            threeDs: null,
+          },
         }),
       });
 
@@ -481,8 +506,7 @@ export default function PaymentPage() {
                   <i className="fas fa-credit-card text-white"></i>
                 </div>
                 Payment Method
-              </h2>
-
+              </h2>{" "}
               <div className="space-y-6">
                 {/* Cash */}
                 <div
@@ -525,7 +549,229 @@ export default function PaymentPage() {
                     </div>
                   </div>
                 </div>
-                {/* Card */}
+
+                {/* Credit Card */}
+                <div
+                  className={`payment-method border-2 rounded-xl p-6 cursor-pointer transition-all duration-300 hover:shadow-md ${
+                    paymentMethod === "credit_card"
+                      ? "border-purple-600 bg-gradient-to-r from-purple-50 to-indigo-50 shadow-lg"
+                      : "border-gray-200 hover:border-purple-300"
+                  }`}
+                  onClick={() => selectPaymentMethod("credit_card")}
+                >
+                  <div className="flex items-center">
+                    <input
+                      type="radio"
+                      name="payment"
+                      id="credit_card"
+                      className="w-5 h-5 text-purple-600 mr-4"
+                      checked={paymentMethod === "credit_card"}
+                      onChange={() => selectPaymentMethod("credit_card")}
+                    />
+                    <div className="flex items-center mr-auto">
+                      <div className="bg-blue-100 p-3 rounded-lg mr-4">
+                        <i className="fas fa-credit-card text-2xl text-blue-600"></i>
+                      </div>
+                      <div>
+                        <label
+                          htmlFor="credit_card"
+                          className="font-semibold text-gray-800 cursor-pointer text-lg"
+                        >
+                          Credit Card
+                        </label>
+                        <p className="text-gray-600 mt-1">
+                          Secure payment via Midtrans with your credit card
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex space-x-3">
+                      <i className="fab fa-cc-visa text-2xl text-blue-600"></i>
+                      <i className="fab fa-cc-mastercard text-2xl text-red-500"></i>
+                      <i className="fab fa-cc-amex text-2xl text-blue-500"></i>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Debit Card */}
+                <div
+                  className={`payment-method border-2 rounded-xl p-6 cursor-pointer transition-all duration-300 hover:shadow-md ${
+                    paymentMethod === "debit_card"
+                      ? "border-purple-600 bg-gradient-to-r from-purple-50 to-indigo-50 shadow-lg"
+                      : "border-gray-200 hover:border-purple-300"
+                  }`}
+                  onClick={() => selectPaymentMethod("debit_card")}
+                >
+                  <div className="flex items-center">
+                    <input
+                      type="radio"
+                      name="payment"
+                      id="debit_card"
+                      className="w-5 h-5 text-purple-600 mr-4"
+                      checked={paymentMethod === "debit_card"}
+                      onChange={() => selectPaymentMethod("debit_card")}
+                    />
+                    <div className="flex items-center mr-auto">
+                      <div className="bg-indigo-100 p-3 rounded-lg mr-4">
+                        <i className="fas fa-credit-card text-2xl text-indigo-600"></i>
+                      </div>
+                      <div>
+                        <label
+                          htmlFor="debit_card"
+                          className="font-semibold text-gray-800 cursor-pointer text-lg"
+                        >
+                          Debit Card
+                        </label>
+                        <p className="text-gray-600 mt-1">
+                          Pay directly from your bank account
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex space-x-3">
+                      <i className="fab fa-cc-visa text-2xl text-blue-600"></i>
+                      <i className="fab fa-cc-mastercard text-2xl text-red-500"></i>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Bank Transfer */}
+                <div
+                  className={`payment-method border-2 rounded-xl p-6 cursor-pointer transition-all duration-300 hover:shadow-md ${
+                    paymentMethod === "bank_transfer"
+                      ? "border-purple-600 bg-gradient-to-r from-purple-50 to-indigo-50 shadow-lg"
+                      : "border-gray-200 hover:border-purple-300"
+                  }`}
+                  onClick={() => selectPaymentMethod("bank_transfer")}
+                >
+                  <div className="flex items-center">
+                    <input
+                      type="radio"
+                      name="payment"
+                      id="bank_transfer"
+                      className="w-5 h-5 text-purple-600 mr-4"
+                      checked={paymentMethod === "bank_transfer"}
+                      onChange={() => selectPaymentMethod("bank_transfer")}
+                    />
+                    <div className="flex items-center mr-auto">
+                      <div className="bg-emerald-100 p-3 rounded-lg mr-4">
+                        <i className="fas fa-university text-2xl text-emerald-600"></i>
+                      </div>
+                      <div>
+                        <label
+                          htmlFor="bank_transfer"
+                          className="font-semibold text-gray-800 cursor-pointer text-lg"
+                        >
+                          Bank Transfer
+                        </label>
+                        <p className="text-gray-600 mt-1">
+                          Transfer directly from your bank account
+                        </p>
+                      </div>
+                    </div>
+                    <div className="bg-emerald-50 px-3 py-1 rounded-lg">
+                      <span className="text-emerald-700 text-sm font-medium">
+                        Popular
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* E-Wallet */}
+                <div
+                  className={`payment-method border-2 rounded-xl p-6 cursor-pointer transition-all duration-300 hover:shadow-md ${
+                    paymentMethod === "e_wallet"
+                      ? "border-purple-600 bg-gradient-to-r from-purple-50 to-indigo-50 shadow-lg"
+                      : "border-gray-200 hover:border-purple-300"
+                  }`}
+                  onClick={() => selectPaymentMethod("e_wallet")}
+                >
+                  <div className="flex items-center">
+                    <input
+                      type="radio"
+                      name="payment"
+                      id="e_wallet"
+                      className="w-5 h-5 text-purple-600 mr-4"
+                      checked={paymentMethod === "e_wallet"}
+                      onChange={() => selectPaymentMethod("e_wallet")}
+                    />
+                    <div className="flex items-center mr-auto">
+                      <div className="bg-purple-100 p-3 rounded-lg mr-4">
+                        <i className="fas fa-wallet text-2xl text-purple-600"></i>
+                      </div>
+                      <div>
+                        <label
+                          htmlFor="e_wallet"
+                          className="font-semibold text-gray-800 cursor-pointer text-lg"
+                        >
+                          E-Wallet
+                        </label>
+                        <p className="text-gray-600 mt-1">
+                          Pay with GoPay, OVO, DANA, or LinkAja
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex space-x-2">
+                      <div className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded">
+                        GoPay
+                      </div>
+                      <div className="bg-purple-100 text-purple-700 text-xs px-2 py-1 rounded">
+                        OVO
+                      </div>
+                      <div className="bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded">
+                        DANA
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Virtual Account */}
+                <div
+                  className={`payment-method border-2 rounded-xl p-6 cursor-pointer transition-all duration-300 hover:shadow-md ${
+                    paymentMethod === "virtual_account"
+                      ? "border-purple-600 bg-gradient-to-r from-purple-50 to-indigo-50 shadow-lg"
+                      : "border-gray-200 hover:border-purple-300"
+                  }`}
+                  onClick={() => selectPaymentMethod("virtual_account")}
+                >
+                  <div className="flex items-center">
+                    <input
+                      type="radio"
+                      name="payment"
+                      id="virtual_account"
+                      className="w-5 h-5 text-purple-600 mr-4"
+                      checked={paymentMethod === "virtual_account"}
+                      onChange={() => selectPaymentMethod("virtual_account")}
+                    />
+                    <div className="flex items-center mr-auto">
+                      <div className="bg-orange-100 p-3 rounded-lg mr-4">
+                        <i className="fas fa-receipt text-2xl text-orange-600"></i>
+                      </div>
+                      <div>
+                        <label
+                          htmlFor="virtual_account"
+                          className="font-semibold text-gray-800 cursor-pointer text-lg"
+                        >
+                          Virtual Account
+                        </label>
+                        <p className="text-gray-600 mt-1">
+                          Pay via ATM, mobile banking, or internet banking
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex space-x-2">
+                      <div className="bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded">
+                        BCA
+                      </div>
+                      <div className="bg-red-100 text-red-700 text-xs px-2 py-1 rounded">
+                        BNI
+                      </div>
+                      <div className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded">
+                        BRI
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Legacy Card and Digital Options for backwards compatibility */}
                 <div
                   className={`payment-method border-2 rounded-xl p-6 cursor-pointer transition-all duration-300 hover:shadow-md ${
                     paymentMethod === "card"
@@ -544,53 +790,24 @@ export default function PaymentPage() {
                       onChange={() => selectPaymentMethod("card")}
                     />
                     <div className="flex items-center mr-auto">
-                      <div className="bg-blue-100 p-3 rounded-lg mr-4">
-                        <i className="fas fa-credit-card text-2xl text-blue-600"></i>
-                      </div>{" "}
+                      <div className="bg-gray-100 p-3 rounded-lg mr-4">
+                        <i className="fas fa-credit-card text-2xl text-gray-600"></i>
+                      </div>
                       <div>
                         <label
                           htmlFor="card"
                           className="font-semibold text-gray-800 cursor-pointer text-lg"
                         >
-                          Credit/Debit Card
+                          Card (Legacy)
                         </label>
                         <p className="text-gray-600 mt-1">
-                          Secure payment via Midtrans - card details will be
-                          entered in the next step
+                          General card payment option
                         </p>
                       </div>
                     </div>
-                    <div className="flex space-x-3">
-                      <i className="fab fa-cc-visa text-2xl text-blue-600"></i>
-                      <i className="fab fa-cc-mastercard text-2xl text-red-500"></i>
-                      <i className="fab fa-cc-amex text-2xl text-blue-500"></i>
-                    </div>
-                  </div>{" "}
-                  {/* Card Info Note - No Form Needed */}
-                  {paymentMethod === "card" && (
-                    <div className="mt-6 pt-6 border-t border-gray-200">
-                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                        <div className="flex items-start">
-                          <div className="bg-blue-100 p-2 rounded-lg mr-3">
-                            <i className="fas fa-info-circle text-blue-600"></i>
-                          </div>
-                          <div>
-                            <h4 className="font-semibold text-blue-800 mb-1">
-                              Secure Payment Process
-                            </h4>
-                            <p className="text-blue-700 text-sm leading-relaxed">
-                              After clicking "Complete Payment", you'll be
-                              redirected to Midtrans secure payment page where
-                              you can safely enter your card details. Your
-                              information is protected with bank-level security.
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>{" "}
-                {/* Digital Wallet */}
+                  </div>
+                </div>
+
                 <div
                   className={`payment-method border-2 rounded-xl p-6 cursor-pointer transition-all duration-300 hover:shadow-md ${
                     paymentMethod === "digital"
@@ -609,62 +826,22 @@ export default function PaymentPage() {
                       onChange={() => selectPaymentMethod("digital")}
                     />
                     <div className="flex items-center mr-auto">
-                      <div className="bg-purple-100 p-3 rounded-lg mr-4">
-                        <i className="fas fa-mobile-alt text-2xl text-purple-600"></i>
+                      <div className="bg-cyan-100 p-3 rounded-lg mr-4">
+                        <i className="fas fa-mobile-alt text-2xl text-cyan-600"></i>
                       </div>
                       <div>
                         <label
                           htmlFor="digital"
                           className="font-semibold text-gray-800 cursor-pointer text-lg"
                         >
-                          Digital Wallet
+                          Digital Wallet (Legacy)
                         </label>
                         <p className="text-gray-600 mt-1">
-                          Pay with your mobile wallet
+                          General digital payment option
                         </p>
                       </div>
                     </div>
-                    <div className="flex space-x-3">
-                      <i className="fab fa-google-pay text-2xl text-blue-500"></i>
-                      <i className="fab fa-apple-pay text-2xl text-gray-800"></i>
-                      <i className="fab fa-paypal text-2xl text-blue-600"></i>
-                    </div>
                   </div>
-
-                  {/* Digital Wallet Options */}
-                  {paymentMethod === "digital" && (
-                    <div className="mt-6 pt-6 border-t border-gray-200">
-                      <div className="space-y-4">
-                        <div className="flex items-center p-4 border-2 border-gray-200 rounded-xl cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-all duration-200">
-                          <div className="bg-blue-100 p-2 rounded-lg mr-4">
-                            <i className="fab fa-google-pay text-2xl text-blue-600"></i>
-                          </div>
-                          <span className="font-semibold text-gray-800">
-                            Google Pay
-                          </span>
-                          <i className="fas fa-chevron-right ml-auto text-gray-400"></i>
-                        </div>
-                        <div className="flex items-center p-4 border-2 border-gray-200 rounded-xl cursor-pointer hover:border-gray-600 hover:bg-gray-50 transition-all duration-200">
-                          <div className="bg-gray-100 p-2 rounded-lg mr-4">
-                            <i className="fab fa-apple-pay text-2xl text-gray-800"></i>
-                          </div>
-                          <span className="font-semibold text-gray-800">
-                            Apple Pay
-                          </span>
-                          <i className="fas fa-chevron-right ml-auto text-gray-400"></i>
-                        </div>
-                        <div className="flex items-center p-4 border-2 border-gray-200 rounded-xl cursor-pointer hover:border-blue-600 hover:bg-blue-50 transition-all duration-200">
-                          <div className="bg-blue-100 p-2 rounded-lg mr-4">
-                            <i className="fab fa-paypal text-2xl text-blue-600"></i>
-                          </div>
-                          <span className="font-semibold text-gray-800">
-                            PayPal
-                          </span>
-                          <i className="fas fa-chevron-right ml-auto text-gray-400"></i>
-                        </div>
-                      </div>
-                    </div>
-                  )}
                 </div>
               </div>
             </div>
