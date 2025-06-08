@@ -80,6 +80,39 @@ export const productApi = {
   },
 };
 
+// Category API functions
+export const categoryApi = {
+  // Get all categories
+  getAll: async () => {
+    const response = await api.get('/categories');
+    return response.data;
+  },
+
+  // Get category by ID
+  getById: async (id: string | number) => {
+    const response = await api.get(`/categories/${id}`);
+    return response.data;
+  },
+
+  // Create new category
+  create: async (categoryData: any) => {
+    const response = await api.post('/categories', categoryData);
+    return response.data;
+  },
+
+  // Update category
+  update: async (id: string | number, categoryData: any) => {
+    const response = await api.put(`/categories/${id}`, categoryData);
+    return response.data;
+  },
+
+  // Delete category
+  delete: async (id: string | number) => {
+    const response = await api.delete(`/categories/${id}`);
+    return response.data;
+  },
+};
+
 // User API functions
 export const userApi = {
   // Get all users
@@ -145,6 +178,112 @@ export const cartApi = {
   // Add item to cart
   addItem: async (userId: string | number, itemData: any) => {
     const response = await api.post(`/cart/${userId}/add`, itemData);
+    return response.data;  },
+};
+
+// Promotion API functions
+export const promotionApi = {
+  // Get all promotions
+  getAll: async () => {
+    const response = await api.get('/promotions');
+    return response.data;
+  },
+
+  // Get active promotions only
+  getActive: async () => {
+    const response = await api.get('/promotions/active');
+    return response.data;
+  },
+
+  // Get eligible promotions for a given order total
+  getEligible: async (orderTotal?: number) => {
+    const url = orderTotal 
+      ? `/promotions/eligible?orderTotal=${orderTotal}`
+      : '/promotions/eligible';
+    const response = await api.get(url);
+    return response.data;
+  },
+
+  // Get promotion by ID
+  getById: async (id: string | number) => {
+    const response = await api.get(`/promotions/${id}`);
+    return response.data;
+  },
+
+  // Create new promotion
+  create: async (promotionData: {
+    name: string;
+    description?: string;
+    discountValue: number;
+    startDate: string;
+    endDate: string;
+    isActive?: boolean;
+    minimumPurchaseAmount?: number;
+    maximumUses?: number;
+    promotionType?: string;
+    maxDiscountAmount?: number;
+  }) => {
+    const response = await api.post('/promotions', promotionData);
+    return response.data;
+  },
+
+  // Update promotion
+  update: async (id: string | number, promotionData: any) => {
+    const response = await api.put(`/promotions/${id}`, promotionData);
+    return response.data;
+  },
+
+  // Delete promotion
+  delete: async (id: string | number) => {
+    const response = await api.delete(`/promotions/${id}`);
+    return response.data;
+  },
+
+  // Toggle promotion active status
+  toggle: async (id: string | number) => {
+    const response = await api.patch(`/promotions/${id}/toggle`);
+    return response.data;
+  },
+};
+
+// Order-Promotion API functions
+export const orderPromotionApi = {
+  // Get all order-promotion relationships
+  getAll: async () => {
+    const response = await api.get('/order-promotions');
+    return response.data;
+  },
+
+  // Get order-promotion by ID
+  getById: async (id: string | number) => {
+    const response = await api.get(`/order-promotions/${id}`);
+    return response.data;
+  },
+
+  // Get promotions applied to a specific order
+  getByOrderId: async (orderId: string | number) => {
+    const response = await api.get(`/order-promotions/order/${orderId}`);
+    return response.data;
+  },
+
+  // Get orders that use a specific promotion
+  getByPromotionId: async (promotionId: string | number) => {
+    const response = await api.get(`/order-promotions/promotion/${promotionId}`);
+    return response.data;
+  },
+
+  // Apply promotion to order
+  apply: async (orderId: string | number, promotionId: string | number) => {
+    const response = await api.post('/order-promotions', {
+      orderId,
+      promotionId,
+    });
+    return response.data;
+  },
+
+  // Remove promotion from order
+  remove: async (id: string | number) => {
+    const response = await api.delete(`/order-promotions/${id}`);
     return response.data;
   },
 };

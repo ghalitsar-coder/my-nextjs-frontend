@@ -6,8 +6,22 @@ import Image from "next/image";
 import Link from "next/link";
 import ProgressSteps from "./ProgressSteps";
 import { ORDER_FLOW_STEPS, getStepInfo } from "./StepsConfig";
+import { useSession } from "@/lib/auth-client";
+
+// Extend the user type to include better-auth fields
+interface ExtendedUser {
+  id: string;
+  name?: string;
+  username?: string;
+  email: string;
+  phone_number?: string;
+  address?: string;
+  role?: string;
+  image?: string;
+}
 
 type OrderItem = {
+  id: number;
   name: string;
   image: string;
   size: string;
@@ -19,33 +33,89 @@ type OrderItem = {
 type OrderInfo = {
   items: OrderItem[];
   subtotal: number;
-  tax: number;
   serviceFee: number;
   discount: number;
-  total: string;
-  paymentMethod: "cash" | "card" | "digital";
+  total: number | string;
+  paymentMethod: string;
   notes?: string;
   orderNumber: string;
   orderDate: string;
+  paymentStatus?: string;
 };
 
 export default function PaymentCompletePage() {
   const router = useRouter();
   const [orderInfo, setOrderInfo] = useState<OrderInfo | null>(null);
-  // Using shared steps configuration from StepsConfig
+  const { data: session, isPending } = useSession();
 
   useEffect(() => {
     // Retrieve completed order info from localStorage
     const savedOrderInfo = localStorage.getItem("coffee-completed-order");
 
     if (savedOrderInfo) {
-      setOrderInfo(JSON.parse(savedOrderInfo));
+      try {
+        const parsedOrderInfo = JSON.parse(savedOrderInfo);
+        setOrderInfo(parsedOrderInfo);
+        
+        // Clear the completed order from localStorage after displaying
+        // localStorage.removeItem("coffee-completed-order");
+      } catch (error) {
+        console.error("Error parsing order info:", error);
+        router.push("/order");
+      }
     } else {
       // If no order info, redirect back to order page
       router.push("/order");
     }
   }, [router]);
 
+  // Format payment method for display
+  const formatPaymentMethod = (method: string) => {
+    switch (method) {
+      case "cash":
+        return { 
+          icon: "fas fa-money-bill-wave text-green-500", 
+          name: "Cash Payment", 
+          detail: "Pay at pickup" 
+        };
+      case "credit_card":
+        return { 
+          icon: "fab fa-cc-visa text-blue-500", 
+          name: "Credit Card", 
+          detail: "Card payment via Midtrans" 
+        };
+      case "debit_card":
+        return { 
+          icon: "fab fa-cc-mastercard text-orange-500", 
+          name: "Debit Card", 
+          detail: "Card payment via Midtrans" 
+        };
+      case "e_wallet":
+        return { 
+          icon: "fas fa-mobile-alt text-purple-500", 
+          name: "E-Wallet", 
+          detail: "Digital wallet payment" 
+        };
+      case "bank_transfer":
+        return { 
+          icon: "fas fa-university text-blue-600", 
+          name: "Bank Transfer", 
+          detail: "Direct bank transfer" 
+        };
+      case "virtual_account":
+        return { 
+          icon: "fas fa-credit-card text-indigo-500", 
+          name: "Virtual Account", 
+          detail: "Virtual account payment" 
+        };
+      default:
+        return { 
+          icon: "fas fa-credit-card text-gray-500", 
+          name: "Digital Payment", 
+          detail: "Electronic payment" 
+        };
+    }
+  };
   // Format date for readable display
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -142,26 +212,42 @@ export default function PaymentCompletePage() {
             Order Details
           </h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* Customer Info */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">            {/* Customer Info */}
             <div className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-2xl p-6 shadow-inner">
               <h3 className="font-semibold text-lg text-gray-800 mb-4 flex items-center">
                 <i className="fas fa-user mr-3 text-purple-600"></i>
                 Customer Information
               </h3>
-              <div className="space-y-3 text-gray-600">
-                <p className="flex items-center">
-                  <span className="font-medium w-16">Name:</span> John Doe
-                </p>
-                <p className="flex items-center">
-                  <span className="font-medium w-16">Email:</span>{" "}
-                  john.doe@example.com
-                </p>
-                <p className="flex items-center">
-                  <span className="font-medium w-16">Phone:</span> (555)
-                  123-4567
-                </p>
-              </div>
+              {isPending ? (
+                <div className="space-y-3 text-gray-600">
+                  <div className="animate-pulse bg-gray-200 h-4 rounded w-3/4"></div>
+                  <div className="animate-pulse bg-gray-200 h-4 rounded w-2/3"></div>
+                  <div className="animate-pulse bg-gray-200 h-4 rounded w-1/2"></div>
+                </div>              ) : session?.user ? (
+                <div className="space-y-3 text-gray-600">
+                  <p className="flex items-center">
+                    <span className="font-medium w-16">Name:</span> {session.user.name || (session.user as ExtendedUser).username || "N/A"}
+                  </p>
+                  <p className="flex items-center">
+                    <span className="font-medium w-16">Email:</span> {session.user.email}
+                  </p>
+                  <p className="flex items-center">
+                    <span className="font-medium w-16">Phone:</span> {(session.user as ExtendedUser).phone_number || "Not provided"}
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3 text-gray-600">
+                  <p className="flex items-center">
+                    <span className="font-medium w-16">Name:</span> Guest User
+                  </p>
+                  <p className="flex items-center">
+                    <span className="font-medium w-16">Email:</span> Not logged in
+                  </p>
+                  <p className="flex items-center">
+                    <span className="font-medium w-16">Phone:</span> Not provided
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Pickup Info */}
@@ -169,18 +255,17 @@ export default function PaymentCompletePage() {
               <h3 className="font-semibold text-lg text-gray-800 mb-4 flex items-center">
                 <i className="fas fa-store mr-3 text-purple-600"></i>
                 Pickup Information
-              </h3>
-              <div className="space-y-3 text-gray-600">
+              </h3>              <div className="space-y-3 text-gray-600">
                 <p>
                   <span className="font-medium">Location:</span> Coffee Haven
-                  Downtown
+                  Main Store
                 </p>
                 <p>
-                  <span className="font-medium">Address:</span> 123 Main Street,
-                  Suite 100
+                  <span className="font-medium">Address:</span> 123 Coffee Street,
+                  Downtown Area
                 </p>
                 <p>
-                  <span className="font-medium">Time:</span> Today at 3:45 PM
+                  <span className="font-medium">Time:</span> Ready in 15-20 minutes
                 </p>
               </div>
             </div>
@@ -227,10 +312,8 @@ export default function PaymentCompletePage() {
                       </div>
                     )}
                   </div>
-                </div>
-                <div className="text-right">
-                  <p className="font-bold text-xl text-gray-800">
-                    ${item.price.toFixed(2)}
+                </div>                <div className="text-right">                  <p className="font-bold text-xl text-gray-800">
+                    IDR {item.price.toLocaleString('id-ID')}
                   </p>
                   <p className="text-sm text-gray-500">Qty: {item.quantity}</p>
                 </div>
@@ -239,69 +322,64 @@ export default function PaymentCompletePage() {
           </div>
 
           {/* Order Summary */}
-          <div className="bg-gradient-to-r from-purple-100 to-indigo-100 rounded-2xl p-6 border border-purple-200 shadow-inner">
-            <div className="space-y-3">
-              <div className="flex justify-between text-gray-700">
+          <div className="bg-gradient-to-r from-purple-100 to-indigo-100 rounded-2xl p-6 border border-purple-200 shadow-inner">            <div className="space-y-3">              <div className="flex justify-between text-gray-700">
                 <span>Subtotal</span>
                 <span className="font-medium">
-                  ${orderInfo.subtotal.toFixed(2)}
+                  IDR {orderInfo.subtotal.toLocaleString('id-ID')}
                 </span>
               </div>
-              <div className="flex justify-between text-gray-700">
-                <span>Tax (8%)</span>
-                <span className="font-medium">${orderInfo.tax.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between text-gray-700">
-                <span>Service Fee</span>
-                <span className="font-medium">
-                  ${orderInfo.serviceFee.toFixed(2)}
-                </span>
-              </div>
-              <div className="flex justify-between border-t border-purple-200 pt-3">
-                <span className="text-gray-700">Discount</span>
-                <span className="font-medium text-green-600">
-                  -${orderInfo.discount.toFixed(2)}
-                </span>
-              </div>
+              {orderInfo.serviceFee > 0 && (
+                <div className="flex justify-between text-gray-700">
+                  <span>Service Fee</span>
+                  <span className="font-medium">
+                    IDR {orderInfo.serviceFee.toLocaleString('id-ID')}
+                  </span>
+                </div>
+              )}
+              {orderInfo.discount > 0 && (
+                <div className="flex justify-between border-t border-purple-200 pt-3">
+                  <span className="text-gray-700">Promotion Discount</span>
+                  <span className="font-medium text-green-600">
+                    -IDR {orderInfo.discount.toLocaleString('id-ID')}
+                  </span>
+                </div>
+              )}
               <div className="flex justify-between pt-3 border-t border-purple-200">
                 <span className="text-xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
                   Total Paid
-                </span>
-                <span className="text-xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
-                  ${orderInfo.total}
+                </span>                <span className="text-xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
+                  IDR {typeof orderInfo.total === 'number' ? orderInfo.total.toLocaleString('id-ID') : orderInfo.total}
                 </span>
               </div>
             </div>
-          </div>
-
-          {/* Payment Method */}
+          </div>          {/* Payment Method */}
           <div className="mt-8 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl p-6 border border-indigo-200">
             <h3 className="font-semibold text-lg text-gray-800 mb-4 flex items-center">
               <i className="fas fa-credit-card mr-3 text-purple-600"></i>
               Payment Method
             </h3>
             <div className="flex items-center">
-              <i
-                className={`${
-                  orderInfo.paymentMethod === "cash"
-                    ? "fas fa-money-bill-wave text-green-500"
-                    : orderInfo.paymentMethod === "card"
-                    ? "fab fa-cc-visa text-blue-500"
-                    : "fas fa-mobile-alt text-purple-500"
-                } text-3xl mr-4`}
-              ></i>
-              <div>
-                <p className="font-medium text-gray-800">
-                  {orderInfo.paymentMethod === "cash"
-                    ? "Cash payment"
-                    : orderInfo.paymentMethod === "card"
-                    ? "Visa ending in 4242"
-                    : "Digital Wallet"}
-                </p>
-                <p className="text-sm text-gray-600">
-                  Payment completed at {formatDate(orderInfo.orderDate)}
-                </p>
-              </div>
+              {(() => {
+                const paymentInfo = formatPaymentMethod(orderInfo.paymentMethod);
+                return (
+                  <>
+                    <i className={`${paymentInfo.icon} text-3xl mr-4`}></i>
+                    <div>
+                      <p className="font-medium text-gray-800">
+                        {paymentInfo.name}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        {paymentInfo.detail} • Completed at {formatDate(orderInfo.orderDate)}
+                      </p>
+                      {orderInfo.paymentStatus && (
+                        <p className="text-xs text-green-600 font-medium mt-1">
+                          Status: {orderInfo.paymentStatus === 'pending' ? 'Payment Pending' : 'Payment Completed'}
+                        </p>
+                      )}
+                    </div>
+                  </>
+                );
+              })()}
             </div>
           </div>
         </div>{" "}
@@ -331,9 +409,7 @@ export default function PaymentCompletePage() {
                     {formatDate(orderInfo.orderDate)}
                   </p>
                 </div>
-              </div>
-
-              <div className="relative pl-12 pb-8">
+              </div>              <div className="relative pl-12 pb-8">
                 <div className="absolute left-0 top-0 w-8 h-8 rounded-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white flex items-center justify-center shadow-lg animate-pulse">
                   <i className="fas fa-coffee"></i>
                 </div>
@@ -342,7 +418,11 @@ export default function PaymentCompletePage() {
                     Preparing Your Order
                   </h3>
                   <p className="text-sm text-gray-600">
-                    Estimated completion: 3:45 PM
+                    Estimated completion: {(() => {
+                      const orderDate = new Date(orderInfo.orderDate);
+                      const estimatedCompletion = new Date(orderDate.getTime() + 15 * 60 * 1000); // Add 15 minutes
+                      return estimatedCompletion.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+                    })()}
                   </p>
                 </div>
               </div>

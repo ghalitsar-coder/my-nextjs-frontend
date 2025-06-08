@@ -16,6 +16,7 @@ import {
   IconHistory,
   IconShoppingBag,
   IconCoffee,
+  IconTag,
 } from "@tabler/icons-react";
 
 import { NavMain } from "@/components/nav-main";
@@ -92,6 +93,24 @@ const adminNavigation = [
       {
         title: "Inventory",
         url: "/dashboard/admin/products/inventory",
+      },
+    ],  },
+  {
+    title: "Promotions",
+    url: "/dashboard/admin/promotions",
+    icon: IconTag,
+    items: [
+      {
+        title: "All Promotions",
+        url: "/dashboard/admin/promotions",
+      },
+      {
+        title: "Active Campaigns",
+        url: "/dashboard/admin/promotions/active",
+      },
+      {
+        title: "Scheduled",
+        url: "/dashboard/admin/promotions/scheduled",
       },
     ],
   },

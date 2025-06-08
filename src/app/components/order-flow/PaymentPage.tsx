@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import ProgressSteps from "./ProgressSteps";
@@ -17,7 +17,8 @@ type PaymentMethod =
   | "debit_card"
   | "bank_transfer"
   | "e_wallet"
-  | "virtual_account";
+  | "virtual_account"
+  | "qris";
 
 // Midtrans payment result interface
 interface MidtransPaymentResult {
@@ -49,24 +50,75 @@ declare global {
 
 export default function PaymentPage() {
   const router = useRouter();
-  const { items, totalPrice, clearCart } = useCartStore();
-  const [discountAmount, setDiscountAmount] = useState(0);
+  const {
+    items,
+    totalPrice,
+    clearCart,
+    // Promotion state and actions from cart store
+    availablePromotions,
+    selectedPromotions,
+    discountAmount,
+    isLoadingPromotions,
+    togglePromotion,
+    fetchAvailablePromotions, // Use centralized fetch function
+  } = useCartStore();
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
   const [isProcessing, setIsProcessing] = useState(false);
   const [notes, setNotes] = useState("");
-  const [promoCode, setPromoCode] = useState("");
   const { data: session } = useSession();
   console.log(`THIS IS  session:`, session?.session?.userId);
-  // Load discount from localStorage
+
+  // Calculate subtotal
+  const calculateSubtotal = useCallback(() => {
+    return totalPrice; // Use totalPrice from cart store
+  }, [totalPrice]); // Handle promotion selection - use cart store's togglePromotion
+  const handlePromotionToggle = useCallback(
+    (promotionId: number) => {
+      togglePromotion(promotionId);
+    },
+    [togglePromotion]
+  ); // Fetch available promotions and load saved promotions from localStorage
   useEffect(() => {
-    const savedDiscount = localStorage.getItem("coffee-discount");
-    if (savedDiscount) {
-      const parsedDiscount = parseFloat(savedDiscount);
-      if (parsedDiscount > 0) {
-        setDiscountAmount(parsedDiscount);
+    // Fetch available promotions when component mounts or cart changes
+    if (items.length > 0) {
+      fetchAvailablePromotions();
+    }
+
+    // Load saved selected promotions from localStorage
+    const savedPromotions = localStorage.getItem("coffee-selected-promotions");
+    if (savedPromotions) {
+      try {
+        const promotionIds = JSON.parse(savedPromotions);
+        if (Array.isArray(promotionIds)) {
+          // Apply saved promotions - the cart store will handle discount calculation
+          promotionIds.forEach((id) => {
+            if (!selectedPromotions.includes(id)) {
+              togglePromotion(id);
+            }
+          });
+        }
+      } catch (error) {
+        console.error("Error loading saved promotions:", error);
       }
     }
-  }, []);
+  }, [
+    items.length,
+    fetchAvailablePromotions,
+    selectedPromotions,
+    togglePromotion,
+  ]);
+
+  // Save selected promotions to localStorage when they change
+  useEffect(() => {
+    if (selectedPromotions.length > 0) {
+      localStorage.setItem(
+        "coffee-selected-promotions",
+        JSON.stringify(selectedPromotions)
+      );
+    } else {
+      localStorage.removeItem("coffee-selected-promotions");
+    }
+  }, [selectedPromotions]);
 
   // Load Midtrans Snap script
   useEffect(() => {
@@ -94,54 +146,58 @@ export default function PaymentPage() {
     price: item.price,
     quantity: item.quantity,
   }));
-
   // Select payment method
   const selectPaymentMethod = (method: PaymentMethod) => {
     setPaymentMethod(method);
   };
-  // Calculate subtotal
-  const calculateSubtotal = () => {
-    return totalPrice; // Use totalPrice from cart store
-  };
-
-  // Calculate tax (8%)
-  const calculateTax = (subtotal: number) => {
-    return subtotal * 0.08;
-  };
-
-  // Service fee
-  const serviceFee = 0.5;
-
-  // Calculate total
+  // Service fee (in IDR)
+  const serviceFee = 2500;
+  // Calculate total (returns as number for IDR)
   const calculateTotal = () => {
     const subtotal = calculateSubtotal();
-    const tax = calculateTax(subtotal);
-    return (subtotal + tax + serviceFee - discountAmount).toFixed(2);
-  };
-  // Create Midtrans transaction
+    return Math.round(subtotal + serviceFee - discountAmount);
+  };// Create Midtrans transaction
   const createMidtransTransaction = async () => {
-    try {
-      // Calculate gross amount as integer to match with item_details
-      const itemsTotal = orderItems.reduce((sum, item) => {
-        return sum + Math.round(item.price) * item.quantity;
-      }, 0);
+    try {      // Calculate final amount including service fee and discount (all in IDR)
+      const finalAmount = Math.round(calculateSubtotal() + serviceFee - discountAmount);
+
+      // Create item details array
+      const itemDetails = orderItems.map((item) => ({
+        id: item.name.replace(/\s/g, "_").toLowerCase(),
+        price: Math.round(item.price), // Ensure price is integer (IDR)
+        quantity: item.quantity,
+        name: item.name,
+      }));      // Add service fee as a line item
+      if (serviceFee > 0) {
+        itemDetails.push({
+          id: "service_fee",
+          price: serviceFee, // Service fee is already in IDR integer format
+          quantity: 1,
+          name: "Service Fee",
+        });
+      }
+
+      // Add discount as a negative line item if there's a discount
+      if (discountAmount > 0) {
+        itemDetails.push({
+          id: "promotion_discount",
+          price: -Math.round(discountAmount), // Negative price for discount
+          quantity: 1,
+          name: "Promotion Discount",
+        });
+      }
 
       const orderData = {
         transaction_details: {
           order_id: `ORDER-${Date.now()}`,
-          gross_amount: itemsTotal, // Use exact integer sum of items
+          gross_amount: Math.round(finalAmount), // Use final amount with discounts applied
         },
         customer_details: {
           first_name: "Customer",
           email: "customer@example.com",
           phone: "08123456789",
         },
-        item_details: orderItems.map((item) => ({
-          id: item.name.replace(/\s/g, "_").toLowerCase(),
-          price: Math.round(item.price), // Ensure price is integer
-          quantity: item.quantity,
-          name: item.name,
-        })),
+        item_details: itemDetails,
       };
 
       const response = await fetch("/api/midtrans/create-transaction", {
@@ -195,13 +251,11 @@ export default function PaymentPage() {
       setIsProcessing(false);
     }
   };
-
   // Process cash payment
   const saveCashOrder = async () => {
     const orderInfo = {
       items: orderItems,
       subtotal: calculateSubtotal(),
-      tax: calculateTax(calculateSubtotal()),
       discount: discountAmount,
       serviceFee: serviceFee,
       total: calculateTotal(),
@@ -233,6 +287,7 @@ export default function PaymentPage() {
             vaNumber: null,
             threeDs: null,
           },
+          promotionIds: selectedPromotions,
         }),
       });
 
@@ -289,13 +344,11 @@ export default function PaymentPage() {
       console.error("Midtrans payment error:", error);
       throw error;
     }
-  };
-  // Handle successful payment
+  }; // Handle successful payment
   const handlePaymentSuccess = async (paymentResult: MidtransPaymentResult) => {
     const orderInfo = {
       items: orderItems,
       subtotal: calculateSubtotal(),
-      tax: calculateTax(calculateSubtotal()),
       discount: discountAmount,
       serviceFee: serviceFee,
       total: calculateTotal(),
@@ -333,6 +386,7 @@ export default function PaymentPage() {
             vaNumber: null,
             threeDs: null,
           },
+          promotionIds: selectedPromotions,
         }),
       });
 
@@ -356,14 +410,6 @@ export default function PaymentPage() {
       router.push(nextStepRoute);
     }
   };
-  // Load discount from localStorage on component mount
-  useEffect(() => {
-    const savedDiscount = localStorage.getItem("coffee-discount");
-
-    if (savedDiscount) {
-      setDiscountAmount(parseFloat(savedDiscount));
-    }
-  }, []);
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-indigo-50">
       <div className="container mx-auto px-4 py-8 max-w-7xl">
@@ -443,10 +489,9 @@ export default function PaymentPage() {
                           </div>
                         )}
                       </div>
-                    </div>
-                    <div className="text-right">
+                    </div>                    <div className="text-right">
                       <p className="font-bold text-lg text-purple-600 mb-1">
-                        ${item.price.toFixed(2)}
+                        IDR {item.price.toLocaleString('id-ID')}
                       </p>
                       <p className="text-sm bg-gray-100 text-gray-600 px-2 py-1 rounded-lg">
                         Qty: {item.quantity}
@@ -473,30 +518,100 @@ export default function PaymentPage() {
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                 ></textarea>
-              </div>
-              {/* Promo Code */}
+              </div>{" "}
+              {/* Available Promotions */}
               <div className="mb-8">
-                {" "}
-                <label
-                  htmlFor="promo"
-                  className="text-sm font-semibold text-gray-700 mb-3 flex items-center"
-                >
+                <label className="text-sm font-semibold text-gray-700 mb-3 flex items-center">
                   <i className="fas fa-ticket-alt mr-2 text-purple-600"></i>
-                  Promo Code
+                  Available Promotions
+                  {isLoadingPromotions && (
+                    <span className="ml-2 text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded-full">
+                      Loading...
+                    </span>
+                  )}
                 </label>
-                <div className="flex rounded-xl overflow-hidden border-2 border-gray-200 focus-within:border-purple-600 transition-colors">
-                  <input
-                    type="text"
-                    id="promo"
-                    className="flex-1 px-4 py-3 bg-gray-50 focus:bg-white focus:outline-none"
-                    placeholder="Enter your promo code"
-                    value={promoCode}
-                    onChange={(e) => setPromoCode(e.target.value)}
-                  />
-                  <button className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-3 hover:from-purple-700 hover:to-indigo-700 transition-all duration-200 font-semibold">
-                    Apply
-                  </button>
-                </div>
+
+                {availablePromotions.length === 0 && !isLoadingPromotions ? (
+                  <div className="bg-gray-50 border-2 border-dashed border-gray-200 rounded-xl p-6 text-center">
+                    <i className="fas fa-tag text-3xl text-gray-300 mb-2"></i>
+                    <p className="text-gray-500">
+                      No promotions available for your current order
+                    </p>
+                    <p className="text-sm text-gray-400 mt-1">
+                      Add more items or increase quantity to unlock promotions
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {availablePromotions.map((promotion) => (
+                      <div
+                        key={promotion.promotionId}
+                        className={`border-2 rounded-xl p-4 cursor-pointer transition-all duration-200 ${
+                          selectedPromotions.includes(promotion.promotionId)
+                            ? "border-purple-600 bg-gradient-to-r from-purple-50 to-indigo-50 shadow-md"
+                            : "border-gray-200 hover:border-purple-300 hover:shadow-sm"
+                        }`}
+                        onClick={() =>
+                          handlePromotionToggle(promotion.promotionId)
+                        }
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-start">
+                            <input
+                              type="checkbox"
+                              checked={selectedPromotions.includes(
+                                promotion.promotionId
+                              )}
+                              onChange={() =>
+                                handlePromotionToggle(promotion.promotionId)
+                              }
+                              className="w-5 h-5 text-purple-600 mt-1 mr-3"
+                            />
+                            <div>
+                              <h3 className="font-semibold text-gray-800 mb-1">
+                                {promotion.name}
+                              </h3>
+                              <p className="text-sm text-gray-600 mb-2">
+                                {promotion.description}
+                              </p>
+                              <div className="flex flex-wrap gap-2 text-xs">                                <span className="bg-green-100 text-green-700 px-2 py-1 rounded-full">
+                                  {promotion.promotionType === "FIXED_AMOUNT"
+                                    ? `IDR ${promotion.discountValue.toLocaleString('id-ID')} off`
+                                    : `${
+                                        promotion.discountValue > 1
+                                          ? promotion.discountValue
+                                          : promotion.discountValue * 100
+                                      }% off`}
+                                </span>
+                                {promotion.minimumPurchaseAmount && (
+                                  <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+                                    Min: IDR {promotion.minimumPurchaseAmount.toLocaleString('id-ID')}
+                                  </span>
+                                )}
+                                {promotion.maximumUses && (
+                                  <span className="bg-orange-100 text-orange-700 px-2 py-1 rounded-full">
+                                    {promotion.maximumUses -
+                                      (promotion.currentUses || 0)}{" "}
+                                    uses left
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            {selectedPromotions.includes(
+                              promotion.promotionId
+                            ) && (
+                              <div className="bg-purple-600 text-white p-2 rounded-full">
+                                <i className="fas fa-check text-sm"></i>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>{" "}
             {/* Payment Methods */}
@@ -856,32 +971,25 @@ export default function PaymentPage() {
                 Order Total
               </h2>
               <div className="bg-gradient-to-r from-gray-50 to-purple-50 rounded-xl p-6 border border-gray-200 mb-8">
-                <div className="space-y-4">
-                  <div className="flex justify-between text-gray-600">
+                {" "}
+                <div className="space-y-4">                  <div className="flex justify-between text-gray-600">
                     <span>Subtotal</span>
                     <span className="font-semibold">
-                      ${calculateSubtotal().toFixed(2)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-gray-600">
-                    <span>Tax (8%)</span>
-                    <span className="font-semibold">
-                      ${calculateTax(calculateSubtotal()).toFixed(2)}
+                      IDR {calculateSubtotal().toLocaleString('id-ID')}
                     </span>
                   </div>
                   <div className="flex justify-between text-gray-600">
                     <span>Service Fee</span>
                     <span className="font-semibold">
-                      ${serviceFee.toFixed(2)}
+                      IDR {serviceFee.toLocaleString('id-ID')}
                     </span>
                   </div>
                   {discountAmount > 0 && (
                     <div className="flex justify-between text-green-600 bg-green-50 px-3 py-2 rounded-lg">
                       <span className="flex items-center">
                         <i className="fas fa-tag mr-2"></i>Discount
-                      </span>
-                      <span className="font-semibold">
-                        -${discountAmount.toFixed(2)}
+                      </span>                      <span className="font-semibold">
+                        -IDR {discountAmount.toLocaleString('id-ID')}
                       </span>
                     </div>
                   )}
@@ -889,9 +997,8 @@ export default function PaymentPage() {
                     <div className="flex justify-between items-center">
                       <span className="text-xl font-bold text-gray-800">
                         Total
-                      </span>
-                      <span className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
-                        ${calculateTotal()}
+                      </span>                      <span className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
+                        IDR {calculateTotal().toLocaleString('id-ID')}
                       </span>
                     </div>
                   </div>

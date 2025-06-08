@@ -33,15 +33,16 @@ export async function POST(request: NextRequest) {
         { error: "Missing item details" },
         { status: 400 }
       );
-    }
-
-    // Calculate the sum of item_details to ensure it matches gross_amount
+    }    // Calculate the sum of item_details to ensure it matches gross_amount
     const itemsTotal = item_details.reduce((sum: number, item: {price: number, quantity: number}) => {
       return sum + (Math.round(item.price) * item.quantity);
     }, 0);
 
-    // Use the items total to ensure consistency between gross_amount and sum of items
-    const grossAmount = itemsTotal;
+    // Use the provided gross_amount if it differs from itemsTotal (indicates discounts/fees)
+    // Otherwise use the calculated itemsTotal
+    const grossAmount = Math.abs(itemsTotal - transaction_details.gross_amount) > 0.01 
+      ? transaction_details.gross_amount 
+      : itemsTotal;
       // Create transaction parameter
     const parameter: any = {
       transaction_details: {

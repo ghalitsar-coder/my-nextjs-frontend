@@ -4,7 +4,7 @@ import "../../globals.css";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { RoleBasedSidebar } from "@/components/role-based-sidebar";
 import { SiteHeader } from "@/components/site-header";
-import { authClient } from "@/lib/auth-client";
+import { Toaster } from "@/components/ui/sonner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -27,8 +27,6 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-
-
   return (
     <html lang="en">
       <body
@@ -52,9 +50,10 @@ export default function RootLayout({
                     {children}
                   </div>
                 </div>
-              </div>
+              </div>{" "}
             </SidebarInset>
           </SidebarProvider>
+          <Toaster />
         </main>
       </body>
     </html>

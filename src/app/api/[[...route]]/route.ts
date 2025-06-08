@@ -73,7 +73,6 @@ app.on(["POST", "GET"], "/api/auth/*", async (c) => {
   }
 });
 
-
 app.get("/api/session", (c) => {
   const session = c.get("session");
   const user = c.get("user");
@@ -244,6 +243,49 @@ app.post("/api/products", async (c) => {
   }
 });
 
+app.put("/api/products/:id", async (c) => {
+  try {
+    const id = c.req.param("id");
+    const body = await c.req.json();
+    const response = await fetch(`${SPRING_BOOT_BASE_URL}/products/${id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    });
+    if (!response.ok) {
+      return c.json({ error: "Product not found" }, 404);
+    }
+    const data = await response.json();
+    return c.json(data);
+  } catch (error) {
+    console.error("Error updating product:", error);
+    return c.json({ error: "Failed to update product" }, 500);
+  }
+});
+
+app.delete("/api/products/:id", async (c) => {
+  try {
+    const id = c.req.param("id");
+    console.log(`Attempting to delete product with ID: ${id}`);
+    const response = await fetch(`${SPRING_BOOT_BASE_URL}/products/${id}`, {
+      method: "DELETE",
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`Delete failed with status ${response.status}:`, errorText);
+      return c.json({ error: "Failed to delete product" }, 500);
+    }
+    
+    return c.json({ message: "Product deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting product:", error);
+    return c.json({ error: "Failed to delete product" }, 500);
+  }
+});
+
 // Orders API proxy
 app.get("/api/orders", async (c) => {
   try {
@@ -406,6 +448,295 @@ app.get("/api/search", async (c) => {
   } catch (error) {
     console.error("Error searching:", error);
     return c.json({ error: "Search failed" }, 500);
+  }
+});
+
+// Categories API proxy
+app.get("/api/categories", async (c) => {
+  try {
+    const response = await fetch(`${SPRING_BOOT_BASE_URL}/categories`);
+    const data = await response.json();
+    return c.json(data);
+  } catch (error) {
+    console.error("Error fetching categories:", error);
+    return c.json({ error: "Failed to fetch categories" }, 500);
+  }
+});
+
+app.get("/api/categories/:id", async (c) => {
+  try {
+    const id = c.req.param("id");
+    const response = await fetch(`${SPRING_BOOT_BASE_URL}/categories/${id}`);
+    if (!response.ok) {
+      return c.json({ error: "Category not found" }, 404);
+    }
+    const data = await response.json();
+    return c.json(data);
+  } catch (error) {
+    console.error("Error fetching category:", error);
+    return c.json({ error: "Failed to fetch category" }, 500);
+  }
+});
+
+app.post("/api/categories", async (c) => {
+  try {
+    const body = await c.req.json();
+    const response = await fetch(`${SPRING_BOOT_BASE_URL}/categories`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    });
+    const data = await response.json();
+    return c.json(data);
+  } catch (error) {
+    console.error("Error creating category:", error);
+    return c.json({ error: "Failed to create category" }, 500);
+  }
+});
+
+// Promotions API proxy
+app.get("/api/promotions", async (c) => {
+  try {
+    const response = await fetch(`${SPRING_BOOT_BASE_URL}/promotions`);
+    const data = await response.json();
+    return c.json(data);
+  } catch (error) {
+    console.error("Error fetching promotions:", error);
+    return c.json({ error: "Failed to fetch promotions" }, 500);
+  }
+});
+
+app.get("/api/promotions/active", async (c) => {
+  try {
+    const response = await fetch(`${SPRING_BOOT_BASE_URL}/promotions/active`);
+    const data = await response.json();
+    return c.json(data);
+  } catch (error) {
+    console.error("Error fetching active promotions:", error);
+    return c.json({ error: "Failed to fetch active promotions" }, 500);
+  }
+});
+
+app.get("/api/promotions/eligible", async (c) => {
+  try {
+    const orderTotal = c.req.query("orderTotal");
+    const url = orderTotal 
+      ? `${SPRING_BOOT_BASE_URL}/promotions/eligible?orderTotal=${orderTotal}`
+      : `${SPRING_BOOT_BASE_URL}/promotions/eligible`;
+    
+    const response = await fetch(url);
+    const data = await response.json();
+    return c.json(data);
+  } catch (error) {
+    console.error("Error fetching eligible promotions:", error);
+    return c.json({ error: "Failed to fetch eligible promotions" }, 500);
+  }
+});
+
+app.get("/api/promotions/:id", async (c) => {
+  try {
+    const id = c.req.param("id");
+    const response = await fetch(`${SPRING_BOOT_BASE_URL}/promotions/${id}`);
+    if (!response.ok) {
+      return c.json({ error: "Promotion not found" }, 404);
+    }
+    const data = await response.json();
+    return c.json(data);
+  } catch (error) {
+    console.error("Error fetching promotion:", error);
+    return c.json({ error: "Failed to fetch promotion" }, 500);
+  }
+});
+
+app.post("/api/promotions", async (c) => {
+  try {
+    const body = await c.req.json();
+    const response = await fetch(`${SPRING_BOOT_BASE_URL}/promotions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      return c.json(errorData, response.status);
+    }
+    
+    const data = await response.json();
+    return c.json(data);
+  } catch (error) {
+    console.error("Error creating promotion:", error);
+    return c.json({ error: "Failed to create promotion" }, 500);
+  }
+});
+
+app.put("/api/promotions/:id", async (c) => {
+  try {
+    const id = c.req.param("id");
+    const body = await c.req.json();
+    const response = await fetch(`${SPRING_BOOT_BASE_URL}/promotions/${id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      return c.json(errorData, response.status);
+    }
+    
+    const data = await response.json();
+    return c.json(data);
+  } catch (error) {
+    console.error("Error updating promotion:", error);
+    return c.json({ error: "Failed to update promotion" }, 500);
+  }
+});
+
+app.delete("/api/promotions/:id", async (c) => {
+  try {
+    const id = c.req.param("id");
+    const response = await fetch(`${SPRING_BOOT_BASE_URL}/promotions/${id}`, {
+      method: "DELETE",
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      return c.json(errorData, response.status);
+    }
+    
+    return c.json({ message: "Promotion deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting promotion:", error);
+    return c.json({ error: "Failed to delete promotion" }, 500);
+  }
+});
+
+app.patch("/api/promotions/:id/toggle", async (c) => {
+  try {
+    const id = c.req.param("id");
+    const response = await fetch(`${SPRING_BOOT_BASE_URL}/promotions/${id}/toggle`, {
+      method: "PATCH",
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      return c.json(errorData, response.status);
+    }
+    
+    const data = await response.json();
+    return c.json(data);
+  } catch (error) {
+    console.error("Error toggling promotion status:", error);
+    return c.json({ error: "Failed to toggle promotion status" }, 500);
+  }
+});
+
+// Order-Promotions API proxy
+app.get("/api/order-promotions", async (c) => {
+  try {
+    const response = await fetch(`${SPRING_BOOT_BASE_URL}/order-promotions`);
+    const data = await response.json();
+    return c.json(data);
+  } catch (error) {
+    console.error("Error fetching order promotions:", error);
+    return c.json({ error: "Failed to fetch order promotions" }, 500);
+  }
+});
+
+app.get("/api/order-promotions/:id", async (c) => {
+  try {
+    const id = c.req.param("id");
+    const response = await fetch(`${SPRING_BOOT_BASE_URL}/order-promotions/${id}`);
+    if (!response.ok) {
+      return c.json({ error: "Order promotion not found" }, 404);
+    }
+    const data = await response.json();
+    return c.json(data);
+  } catch (error) {
+    console.error("Error fetching order promotion:", error);
+    return c.json({ error: "Failed to fetch order promotion" }, 500);
+  }
+});
+
+app.get("/api/order-promotions/order/:orderId", async (c) => {
+  try {
+    const orderId = c.req.param("orderId");
+    const response = await fetch(`${SPRING_BOOT_BASE_URL}/order-promotions/order/${orderId}`);
+    if (!response.ok) {
+      const errorData = await response.json();
+      return c.json(errorData, response.status);
+    }
+    const data = await response.json();
+    return c.json(data);
+  } catch (error) {
+    console.error("Error fetching order promotions:", error);
+    return c.json({ error: "Failed to fetch order promotions" }, 500);
+  }
+});
+
+app.get("/api/order-promotions/promotion/:promotionId", async (c) => {
+  try {
+    const promotionId = c.req.param("promotionId");
+    const response = await fetch(`${SPRING_BOOT_BASE_URL}/order-promotions/promotion/${promotionId}`);
+    if (!response.ok) {
+      const errorData = await response.json();
+      return c.json(errorData, response.status);
+    }
+    const data = await response.json();
+    return c.json(data);
+  } catch (error) {
+    console.error("Error fetching promotion orders:", error);
+    return c.json({ error: "Failed to fetch promotion orders" }, 500);
+  }
+});
+
+app.post("/api/order-promotions", async (c) => {
+  try {
+    const body = await c.req.json();
+    const response = await fetch(`${SPRING_BOOT_BASE_URL}/order-promotions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      return c.json(errorData, response.status);
+    }
+    
+    const data = await response.json();
+    return c.json(data);
+  } catch (error) {
+    console.error("Error applying promotion to order:", error);
+    return c.json({ error: "Failed to apply promotion to order" }, 500);
+  }
+});
+
+app.delete("/api/order-promotions/:id", async (c) => {
+  try {
+    const id = c.req.param("id");
+    const response = await fetch(`${SPRING_BOOT_BASE_URL}/order-promotions/${id}`, {
+      method: "DELETE",
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      return c.json(errorData, response.status);
+    }
+    
+    return c.json({ message: "Promotion removed from order successfully" });
+  } catch (error) {
+    console.error("Error removing promotion from order:", error);
+    return c.json({ error: "Failed to remove promotion from order" }, 500);
   }
 });
 
