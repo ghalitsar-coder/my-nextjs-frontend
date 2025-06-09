@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { promotionApi } from "@/lib/api";
-import { toast } from "sonner";
+import { toast } from "react-hot-toast";
 import {
   Card,
   CardContent,
@@ -50,29 +50,25 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   IconPlus,
   IconSearch,
-  IconFilter,
   IconFileExport,
   IconEdit,
   IconTrash,
-  IconCalendar,
   IconTag,
-  IconPercentage,
   IconGift,
-  IconTrendingUp,
   IconClock,
   IconUsers,
   IconChevronLeft,
   IconChevronRight,
 } from "@tabler/icons-react";
 
+// Backend Promotion interface
 interface Promotion {
   promotionId: number;
   name: string;
-  description: string;
+  description?: string;
   discountValue: number;
   startDate: string;
   endDate: string;
@@ -80,230 +76,183 @@ interface Promotion {
   minimumPurchaseAmount?: number;
   maximumUses?: number;
   currentUses?: number;
-  promotionType?: string;
+  promotionType?: string; // "PERCENTAGE", "FIXED_AMOUNT", etc.
   maxDiscountAmount?: number;
 }
 
+// Form interface for frontend form handling
+interface PromotionFormData {
+  name: string;
+  description: string;
+  discountValue: string;
+  startDate: string;
+  endDate: string;
+  isActive: boolean;
+  minimumPurchaseAmount: string;
+  maximumUses: string;
+  promotionType: string;
+  maxDiscountAmount: string;
+}
+
+// Form state
+const defaultFormData = {
+  name: "",
+  description: "",
+  discountValue: "",
+  startDate: "",
+  endDate: "",
+  isActive: true,
+  minimumPurchaseAmount: "",
+  maximumUses: "",
+  promotionType: "PERCENTAGE",
+  maxDiscountAmount: "",
+};
+
 export default function PromotionsPage() {
   const [promotions, setPromotions] = useState<Promotion[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [typeFilter, setTypeFilter] = useState<string>("all");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [formData, setFormData] = useState<PromotionFormData>(defaultFormData);
   const [editingPromotion, setEditingPromotion] = useState<Promotion | null>(
     null
-  );  const [formData, setFormData] = useState({
-    name: "",
-    description: "",
-    discountValue: "",
-    startDate: "",
-    endDate: "",
-    minimumPurchaseAmount: "",
-    maximumUses: "",
-    promotionType: "PERCENTAGE",
-    maxDiscountAmount: "",
-    isActive: true,
-  });
-
+  );
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [typeFilter, setTypeFilter] = useState("all");
+  const [currentPage, setCurrentPage] = useState(1);
   // Load promotions from API
-  useEffect(() => {
-    loadPromotions();
-  }, []);
-  const loadPromotions = async () => {
+  const loadPromotions = useCallback(async () => {
     try {
-      setLoading(true);
       const data = await promotionApi.getAll();
       setPromotions(data);
-    } catch (error) {
-      console.error("Error loading promotions:", error);
+    } catch {
       toast.error("Failed to load promotions");
-    } finally {
-      setLoading(false);
     }
-  };
+  }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  useEffect(() => {
+    loadPromotions();
+  }, [loadPromotions]);
+  // Handle form submit
+  const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     try {
-      const promotionData = {
+      const payload = {
         name: formData.name,
         description: formData.description,
         discountValue: Number(formData.discountValue),
         startDate: formData.startDate,
         endDate: formData.endDate,
         isActive: formData.isActive,
-        ...(formData.minimumPurchaseAmount && {
-          minimumPurchaseAmount: Number(formData.minimumPurchaseAmount)
-        }),
-        ...(formData.maximumUses && {
-          maximumUses: Number(formData.maximumUses)
-        }),
-        ...(formData.promotionType && {
-          promotionType: formData.promotionType
-        }),
-        ...(formData.maxDiscountAmount && {
-          maxDiscountAmount: Number(formData.maxDiscountAmount)
-        }),
+        minimumPurchaseAmount: formData.minimumPurchaseAmount
+          ? Number(formData.minimumPurchaseAmount)
+          : undefined,
+        maximumUses: formData.maximumUses
+          ? Number(formData.maximumUses)
+          : undefined,
+        promotionType: formData.promotionType,
+        maxDiscountAmount: formData.maxDiscountAmount
+          ? Number(formData.maxDiscountAmount)
+          : undefined,
       };
-
       if (editingPromotion) {
-        await promotionApi.update(editingPromotion.promotionId, promotionData);
+        await promotionApi.update(editingPromotion?.promotionId, payload);
         toast.success("Promotion updated successfully");
       } else {
-        await promotionApi.create(promotionData);
+        await promotionApi.create(payload);
         toast.success("Promotion created successfully");
       }
-      
       await loadPromotions();
       resetForm();
-    } catch (error) {
-      console.error("Error saving promotion:", error);
-      toast.error(`Failed to ${editingPromotion ? 'update' : 'create'} promotion`);
+    } catch {
+      toast.error("Failed to save promotion");
     }
   };
-
+  // Handle delete
   const handleDelete = async (id: number) => {
     try {
       await promotionApi.delete(id);
       toast.success("Promotion deleted successfully");
       await loadPromotions();
-    } catch (error) {
-      console.error("Error deleting promotion:", error);
+    } catch {
       toast.error("Failed to delete promotion");
     }
   };
-
-  const handleToggleStatus = async (id: number) => {
-    try {
-      await promotionApi.toggle(id);
-      toast.success("Promotion status updated successfully");
-      await loadPromotions();
-    } catch (error) {
-      console.error("Error toggling promotion status:", error);
-      toast.error("Failed to toggle promotion status");
-    }
+  // Edit handler
+  const handleEdit = (promotion: Promotion) => {
+    setFormData({
+      name: promotion.name,
+      description: promotion.description || "",
+      discountValue: promotion.discountValue.toString(),
+      startDate: promotion.startDate,
+      endDate: promotion.endDate,
+      isActive: promotion.isActive,
+      minimumPurchaseAmount: promotion.minimumPurchaseAmount?.toString() || "",
+      maximumUses: promotion.maximumUses?.toString() || "",
+      promotionType: promotion.promotionType || "PERCENTAGE",
+      maxDiscountAmount: promotion.maxDiscountAmount?.toString() || "",
+    });
+    setEditingPromotion(promotion);
+    setIsAddModalOpen(true);
   };
 
-  const itemsPerPage = 10;
-  // Helper function to determine promotion status
+  // Reset form
+  const resetForm = () => {
+    setFormData(defaultFormData);
+    setEditingPromotion(null);
+    setIsAddModalOpen(false);
+  };
+  // Status logic
   const getPromotionStatus = (promotion: Promotion) => {
     const now = new Date();
     const startDate = new Date(promotion.startDate);
     const endDate = new Date(promotion.endDate);
-    
     if (!promotion.isActive) return "inactive";
     if (now < startDate) return "scheduled";
     if (now > endDate) return "expired";
     return "active";
   };
-
-  // Filter promotions
+  // Filtering
   const filteredPromotions = promotions.filter((promotion) => {
-    const matchesSearch = promotion.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = promotion.name
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase());
     const promotionStatus = getPromotionStatus(promotion);
-    const matchesStatus = statusFilter === "all" || promotionStatus === statusFilter;
+    const matchesStatus =
+      statusFilter === "all" || promotionStatus === statusFilter;
     const promotionType = promotion.promotionType || "PERCENTAGE";
-    const matchesType = typeFilter === "all" || promotionType.toLowerCase() === typeFilter;
-
+    const matchesType =
+      typeFilter === "all" ||
+      promotionType.toLowerCase() === typeFilter.toLowerCase();
     return matchesSearch && matchesStatus && matchesType;
   });
 
   // Pagination
+  const itemsPerPage = 10;
   const totalPages = Math.ceil(filteredPromotions.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedPromotions = filteredPromotions.slice(
     startIndex,
     startIndex + itemsPerPage
   );
-
-  // Stats calculations
-  const activePromotions = promotions.filter((p) => getPromotionStatus(p) === "active").length;
-  const totalRedemptions = promotions.reduce((sum, p) => sum + (p.currentUses || 0), 0);
-  const scheduledPromotions = promotions.filter((p) => getPromotionStatus(p) === "scheduled").length;
+  // Stats
+  const activePromotions = promotions.filter(
+    (p) => getPromotionStatus(p) === "active"
+  ).length;
+  const totalRedemptions = promotions.reduce(
+    (sum, p) => sum + (p.currentUses || 0),
+    0
+  );
+  const scheduledPromotions = promotions.filter(
+    (p) => getPromotionStatus(p) === "scheduled"
+  ).length;
   const totalSavings = promotions.reduce((sum, p) => {
-    if (p.type === "percentage") {
-      return sum + p.currentUses * (p.maxDiscount || 0);
-    } else if (p.type === "fixed") {
-      return sum + p.currentUses * p.discountValue;
+    if (p.promotionType === "PERCENTAGE") {
+      return sum + (p.currentUses || 0) * (p.maxDiscountAmount || 0);
+    } else if (p.promotionType === "FIXED_AMOUNT") {
+      return sum + (p.currentUses || 0) * p.discountValue;
     }
     return sum;
   }, 0);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-
-    const newPromotion: Promotion = {
-      id: editingPromotion?.id || Date.now().toString(),
-      name: formData.name,
-      code: formData.code,
-      type: formData.type as Promotion["type"],
-      discountValue: Number(formData.discountValue),
-      startDate: formData.startDate,
-      endDate: formData.endDate,
-      minPurchase: Number(formData.minPurchase),
-      maxDiscount: formData.maxDiscount
-        ? Number(formData.maxDiscount)
-        : undefined,
-      description: formData.description,
-      maxUses: formData.maxUses ? Number(formData.maxUses) : undefined,
-      currentUses: editingPromotion?.currentUses || 0,
-      status: formData.status as Promotion["status"],
-      createdAt: editingPromotion?.createdAt || new Date().toISOString(),
-    };
-
-    if (editingPromotion) {
-      setPromotions(
-        promotions.map((p) => (p.id === editingPromotion.id ? newPromotion : p))
-      );
-    } else {
-      setPromotions([...promotions, newPromotion]);
-    }
-
-    resetForm();
-  };
-
-  const resetForm = () => {
-    setFormData({
-      name: "",
-      code: "",
-      type: "percentage",
-      discountValue: "",
-      startDate: "",
-      endDate: "",
-      minPurchase: "",
-      maxDiscount: "",
-      description: "",
-      maxUses: "",
-      status: "active",
-    });
-    setEditingPromotion(null);
-    setIsAddModalOpen(false);
-  };
-
-  const handleEdit = (promotion: Promotion) => {
-    setFormData({
-      name: promotion.name,
-      code: promotion.code,
-      type: promotion.type,
-      discountValue: promotion.discountValue.toString(),
-      startDate: promotion.startDate,
-      endDate: promotion.endDate,
-      minPurchase: promotion.minPurchase.toString(),
-      maxDiscount: promotion.maxDiscount?.toString() || "",
-      description: promotion.description,
-      maxUses: promotion.maxUses?.toString() || "",
-      status: promotion.status,
-    });
-    setEditingPromotion(promotion);
-    setIsAddModalOpen(true);
-  };
-
-  const handleDelete = (id: string) => {
-    setPromotions(promotions.filter((p) => p.id !== id));
-  };
 
   const getStatusBadge = (status: string) => {
     const variants = {
@@ -314,15 +263,12 @@ export default function PromotionsPage() {
     };
     return variants[status as keyof typeof variants] || variants.draft;
   };
-
   const getTypeBadge = (type: string) => {
     const variants = {
-      percentage: "bg-purple-100 text-purple-800",
-      fixed: "bg-blue-100 text-blue-800",
-      free_shipping: "bg-green-100 text-green-800",
-      bogo: "bg-orange-100 text-orange-800",
+      PERCENTAGE: "bg-purple-100 text-purple-800",
+      FIXED_AMOUNT: "bg-blue-100 text-blue-800",
     };
-    return variants[type as keyof typeof variants] || variants.percentage;
+    return variants[type as keyof typeof variants] || variants.PERCENTAGE;
   };
 
   const formatCurrency = (amount: number) => {
@@ -452,7 +398,6 @@ export default function PromotionsPage() {
             </CardContent>
           </Card>
         </div>
-
         {/* Main Content */}
         <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm">
           <CardHeader className="border-b border-gray-200">
@@ -484,8 +429,8 @@ export default function PromotionsPage() {
                         ? "Update the promotion details below."
                         : "Fill in the details to create a new promotional campaign."}
                     </DialogDescription>
-                  </DialogHeader>
-                  <form onSubmit={handleSubmit} className="space-y-6">
+                  </DialogHeader>{" "}
+                  <form onSubmit={handleFormSubmit} className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-2">
                         <Label htmlFor="name">Promotion Name</Label>
@@ -499,51 +444,31 @@ export default function PromotionsPage() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="code">Promo Code</Label>
-                        <Input
-                          id="code"
-                          value={formData.code}
-                          onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              code: e.target.value.toUpperCase(),
-                            })
-                          }
-                          required
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="type">Discount Type</Label>
+                        <Label htmlFor="promotionType">Promotion Type</Label>
                         <Select
-                          value={formData.type}
+                          value={formData.promotionType}
                           onValueChange={(value) =>
-                            setFormData({ ...formData, type: value })
+                            setFormData({ ...formData, promotionType: value })
                           }
                         >
                           <SelectTrigger>
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="percentage">
+                            <SelectItem value="PERCENTAGE">
                               Percentage
                             </SelectItem>
-                            <SelectItem value="fixed">Fixed Amount</SelectItem>
-                            <SelectItem value="free_shipping">
-                              Free Shipping
-                            </SelectItem>
-                            <SelectItem value="bogo">
-                              Buy One Get One
+                            <SelectItem value="FIXED_AMOUNT">
+                              Fixed Amount
                             </SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="discountValue">
-                          {formData.type === "percentage"
+                          {formData.promotionType === "PERCENTAGE"
                             ? "Discount Percentage (%)"
-                            : formData.type === "fixed"
-                            ? "Discount Amount (IDR)"
-                            : "Discount Value"}
+                            : "Discount Amount (IDR)"}
                         </Label>
                         <Input
                           id="discountValue"
@@ -555,8 +480,23 @@ export default function PromotionsPage() {
                               discountValue: e.target.value,
                             })
                           }
-                          required={formData.type !== "free_shipping"}
-                          disabled={formData.type === "free_shipping"}
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="maxDiscountAmount">
+                          Maximum Discount Amount (IDR)
+                        </Label>
+                        <Input
+                          id="maxDiscountAmount"
+                          type="number"
+                          value={formData.maxDiscountAmount}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              maxDiscountAmount: e.target.value,
+                            })
+                          }
                         />
                       </div>
                       <div className="space-y-2">
@@ -590,33 +530,33 @@ export default function PromotionsPage() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="minPurchase">
+                        <Label htmlFor="minimumPurchaseAmount">
                           Minimum Purchase (IDR)
                         </Label>
                         <Input
-                          id="minPurchase"
+                          id="minimumPurchaseAmount"
                           type="number"
-                          value={formData.minPurchase}
+                          value={formData.minimumPurchaseAmount}
                           onChange={(e) =>
                             setFormData({
                               ...formData,
-                              minPurchase: e.target.value,
+                              minimumPurchaseAmount: e.target.value,
                             })
                           }
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="maxDiscount">
-                          Maximum Discount (IDR)
+                        <Label htmlFor="maximumUses">
+                          Maximum Uses (optional)
                         </Label>
                         <Input
-                          id="maxDiscount"
+                          id="maximumUses"
                           type="number"
-                          value={formData.maxDiscount}
+                          value={formData.maximumUses}
                           onChange={(e) =>
                             setFormData({
                               ...formData,
-                              maxDiscount: e.target.value,
+                              maximumUses: e.target.value,
                             })
                           }
                         />
@@ -638,42 +578,21 @@ export default function PromotionsPage() {
                       />
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-2">
-                        <Label htmlFor="maxUses">Maximum Uses (optional)</Label>
-                        <Input
-                          id="maxUses"
-                          type="number"
-                          value={formData.maxUses}
+                    <div className="space-y-2">
+                      <Label>Status</Label>
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          id="isActive"
+                          checked={formData.isActive}
                           onChange={(e) =>
                             setFormData({
                               ...formData,
-                              maxUses: e.target.value,
+                              isActive: e.target.checked,
                             })
                           }
                         />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Status</Label>
-                        <RadioGroup
-                          value={formData.status}
-                          onValueChange={(value) =>
-                            setFormData({ ...formData, status: value })
-                          }
-                        >
-                          <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="active" id="active" />
-                            <Label htmlFor="active">Active</Label>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="scheduled" id="scheduled" />
-                            <Label htmlFor="scheduled">Scheduled</Label>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="draft" id="draft" />
-                            <Label htmlFor="draft">Draft</Label>
-                          </div>
-                        </RadioGroup>
+                        <Label htmlFor="isActive">Active</Label>
                       </div>
                     </div>
 
@@ -723,32 +642,28 @@ export default function PromotionsPage() {
                   <SelectItem value="expired">Expired</SelectItem>
                   <SelectItem value="draft">Draft</SelectItem>
                 </SelectContent>
-              </Select>
+              </Select>{" "}
               <Select value={typeFilter} onValueChange={setTypeFilter}>
                 <SelectTrigger className="w-full md:w-48">
                   <SelectValue placeholder="Filter by type" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Types</SelectItem>
-                  <SelectItem value="percentage">Percentage</SelectItem>
-                  <SelectItem value="fixed">Fixed Amount</SelectItem>
-                  <SelectItem value="free_shipping">Free Shipping</SelectItem>
-                  <SelectItem value="bogo">Buy One Get One</SelectItem>
+                  <SelectItem value="PERCENTAGE">Percentage</SelectItem>
+                  <SelectItem value="FIXED_AMOUNT">Fixed Amount</SelectItem>
                 </SelectContent>
               </Select>
               <Button variant="outline" className="flex items-center">
                 <IconFileExport className="mr-2 h-4 w-4" />
                 Export
               </Button>
-            </div>
-
+            </div>{" "}
             {/* Table */}
             <div className="rounded-md border">
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Name</TableHead>
-                    <TableHead>Code</TableHead>
                     <TableHead>Type</TableHead>
                     <TableHead>Discount</TableHead>
                     <TableHead>Period</TableHead>
@@ -759,7 +674,10 @@ export default function PromotionsPage() {
                 </TableHeader>
                 <TableBody>
                   {paginatedPromotions.map((promotion) => (
-                    <TableRow key={promotion.id} className="hover:bg-gray-50">
+                    <TableRow
+                      key={promotion.promotionId}
+                      className="hover:bg-gray-50"
+                    >
                       <TableCell className="font-medium">
                         <div>
                           <div className="font-semibold">{promotion.name}</div>
@@ -769,26 +687,24 @@ export default function PromotionsPage() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline" className="font-mono">
-                          {promotion.code}
+                        <Badge
+                          className={getTypeBadge(
+                            promotion.promotionType || "PERCENTAGE"
+                          )}
+                        >
+                          {(promotion.promotionType || "PERCENTAGE").replace(
+                            "_",
+                            " "
+                          )}
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <Badge className={getTypeBadge(promotion.type)}>
-                          {promotion.type.replace("_", " ").toUpperCase()}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {promotion.type === "percentage"
+                        {promotion.promotionType === "PERCENTAGE"
                           ? `${promotion.discountValue}%`
-                          : promotion.type === "fixed"
-                          ? formatCurrency(promotion.discountValue)
-                          : promotion.type === "free_shipping"
-                          ? "Free Shipping"
-                          : "BOGO"}
-                        {promotion.maxDiscount && (
+                          : formatCurrency(promotion.discountValue)}
+                        {promotion.maxDiscountAmount && (
                           <div className="text-xs text-gray-500">
-                            Max: {formatCurrency(promotion.maxDiscount)}
+                            Max: {formatCurrency(promotion.maxDiscountAmount)}
                           </div>
                         )}
                       </TableCell>
@@ -803,21 +719,22 @@ export default function PromotionsPage() {
                       <TableCell>
                         <div className="text-sm">
                           <div className="font-medium">
-                            {promotion.currentUses.toLocaleString()}
+                            {(promotion.currentUses || 0).toLocaleString()}
                           </div>
-                          {promotion.maxUses && (
+                          {promotion.maximumUses && (
                             <div className="text-gray-500">
-                              / {promotion.maxUses.toLocaleString()}
+                              / {promotion.maximumUses.toLocaleString()}
                             </div>
                           )}
                         </div>
-                        {promotion.maxUses && (
+                        {promotion.maximumUses && (
                           <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
                             <div
                               className="bg-blue-600 h-1.5 rounded-full"
                               style={{
                                 width: `${Math.min(
-                                  (promotion.currentUses / promotion.maxUses) *
+                                  ((promotion.currentUses || 0) /
+                                    promotion.maximumUses) *
                                     100,
                                   100
                                 )}%`,
@@ -827,8 +744,12 @@ export default function PromotionsPage() {
                         )}
                       </TableCell>
                       <TableCell>
-                        <Badge className={getStatusBadge(promotion.status)}>
-                          {promotion.status.toUpperCase()}
+                        <Badge
+                          className={getStatusBadge(
+                            getPromotionStatus(promotion)
+                          )}
+                        >
+                          {getPromotionStatus(promotion).toUpperCase()}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
@@ -856,15 +777,17 @@ export default function PromotionsPage() {
                                   Delete Promotion
                                 </AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  Are you sure you want to delete "
-                                  {promotion.name}"? This action cannot be
+                                  Are you sure you want to delete &quot;
+                                  {promotion.name}&quot;? This action cannot be
                                   undone.
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
                                 <AlertDialogCancel>Cancel</AlertDialogCancel>
                                 <AlertDialogAction
-                                  onClick={() => handleDelete(promotion.id)}
+                                  onClick={() =>
+                                    handleDelete(promotion.promotionId)
+                                  }
                                   className="bg-red-600 hover:bg-red-700"
                                 >
                                   Delete
@@ -879,7 +802,6 @@ export default function PromotionsPage() {
                 </TableBody>
               </Table>
             </div>
-
             {/* Pagination */}
             {totalPages > 1 && (
               <div className="flex items-center justify-between mt-6">
@@ -921,107 +843,46 @@ export default function PromotionsPage() {
               </div>
             )}
           </CardContent>
-        </Card>
-
+        </Card>{" "}
         {/* Insights Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
+        <div className="grid grid-cols-1 gap-6 mt-8">
           <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm">
             <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span>Promotion Performance</span>
-                <Select defaultValue="90days">
-                  <SelectTrigger className="w-32">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="7days">7 days</SelectItem>
-                    <SelectItem value="30days">30 days</SelectItem>
-                    <SelectItem value="90days">90 days</SelectItem>
-                  </SelectContent>
-                </Select>
-              </CardTitle>
+              <CardTitle>Promotion Statistics</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="h-64 flex items-end justify-between">
-                {/* Mock chart data */}
-                {[
-                  "SUMMER24",
-                  "WELCOME15",
-                  "FREESHIP",
-                  "FLASH50",
-                  "VALENTINE",
-                  "BLACKFRI",
-                ].map((code, index) => (
-                  <div key={code} className="flex flex-col items-center">
-                    <div
-                      className={`w-12 rounded-t-md bg-gradient-to-t ${
-                        index % 6 === 0
-                          ? "from-blue-400 to-blue-200"
-                          : index % 6 === 1
-                          ? "from-purple-400 to-purple-200"
-                          : index % 6 === 2
-                          ? "from-green-400 to-green-200"
-                          : index % 6 === 3
-                          ? "from-yellow-400 to-yellow-200"
-                          : index % 6 === 4
-                          ? "from-pink-400 to-pink-200"
-                          : "from-red-400 to-red-200"
-                      }`}
-                      style={{ height: `${Math.random() * 150 + 50}px` }}
-                    ></div>
-                    <div className="text-xs text-gray-500 mt-2 text-center">
-                      {code}
-                    </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-blue-600">
+                    {promotions.length}
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm">
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span>Upcoming Promotions</span>
-                <Button variant="ghost" size="sm" className="text-indigo-600">
-                  <IconPlus className="mr-1 h-4 w-4" />
-                  Schedule
-                </Button>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {promotions
-                  .filter((p) => p.status === "scheduled")
-                  .slice(0, 3)
-                  .map((promotion) => (
-                    <div
-                      key={promotion.id}
-                      className="flex items-center p-4 border border-gray-100 rounded-lg"
-                    >
-                      <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 mr-3">
-                        <IconCalendar className="h-5 w-5" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900 truncate">
-                          {promotion.name}
-                        </p>
-                        <p className="text-xs text-gray-500 truncate">
-                          Code: {promotion.code} •{" "}
-                          {formatDate(promotion.startDate)}
-                        </p>
-                      </div>
-                      <Badge className={getStatusBadge(promotion.status)}>
-                        {promotion.status.toUpperCase()}
-                      </Badge>
-                    </div>
-                  ))}
-                {promotions.filter((p) => p.status === "scheduled").length ===
-                  0 && (
-                  <div className="text-center py-8 text-gray-500">
-                    <IconCalendar className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-                    <p>No upcoming promotions scheduled</p>
+                  <div className="text-sm text-gray-500">Total Promotions</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-green-600">
+                    {promotions.filter((p) => p.isActive).length}
                   </div>
-                )}
+                  <div className="text-sm text-gray-500">Active Promotions</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-orange-600">
+                    {promotions.filter((p) => !p.isActive).length}
+                  </div>
+                  <div className="text-sm text-gray-500">
+                    Inactive Promotions
+                  </div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-purple-600">
+                    {
+                      promotions.filter((p) => p.promotionType === "PERCENTAGE")
+                        .length
+                    }
+                  </div>
+                  <div className="text-sm text-gray-500">
+                    Percentage Discounts
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
