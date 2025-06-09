@@ -130,12 +130,14 @@ const CashierDashboard = () => {
       setOrders(ordersData);
       setFilteredOrders(ordersData);
       setLastRefresh(new Date());
-      setPreviousOrderCount(ordersData.length);
-        // Calculate statistics with enhanced metrics
-      const today = new Date().toISOString().split('T')[0];
-      const todaysOrders = ordersData.filter(order => 
-        order.orderDate.split('T')[0] === today
-      );
+      setPreviousOrderCount(ordersData.length);        // Calculate statistics with enhanced metrics
+      const today = new Date();
+      const todaysOrders = ordersData.filter(order => {
+        const orderDate = new Date(order.orderDate);
+        return orderDate.getFullYear() === today.getFullYear() &&
+               orderDate.getMonth() === today.getMonth() &&
+               orderDate.getDate() === today.getDate();
+      });
       
       const todaysSales = todaysOrders.reduce((sum, order) => {
         const orderTotal = order.payments.reduce((total, payment) => 
@@ -302,11 +304,13 @@ const CashierDashboard = () => {
       toast.error("Failed to update order status");    }
   };
 
-  // Pagination logic
-  const today = new Date().toISOString().split('T')[0];
-  const todaysOrders = filteredOrders.filter(order => 
-    order.orderDate.split('T')[0] === today
-  );
+  // Pagination logic  const today = new Date();
+  const todaysOrders = filteredOrders.filter(order => {
+    const orderDate = new Date(order.orderDate);
+    return orderDate.getFullYear() === today.getFullYear() &&
+           orderDate.getMonth() === today.getMonth() &&
+           orderDate.getDate() === today.getDate();
+  });
   
   const totalPages = Math.ceil(todaysOrders.length / ordersPerPage);
   const startIndex = (currentPage - 1) * ordersPerPage;

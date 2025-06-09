@@ -22,6 +22,7 @@ import {
 } from "@tabler/icons-react";
 import { toast } from "sonner";
 import { orderApi, Order } from "@/lib/api";
+import { isToday, isSameDay, parseISO } from 'date-fns';
 
 // Status color mapping
 const getStatusColor = (status: string) => {
@@ -79,19 +80,17 @@ const CashierDashboard = () => {
     averageOrderValue: 0,
     efficiency: 0
   });
-
   // Load orders
   const loadOrders = async () => {
     try {
       setIsLoading(true);      const ordersData = await orderApi.getAll();
       setOrders(ordersData);
       setFilteredOrders(ordersData);
-      setLastRefresh(new Date());
-        // Calculate statistics with enhanced metrics
-      const today = new Date().toISOString().split('T')[0];
-      const todaysOrders = ordersData.filter(order => 
-        order.orderDate.split('T')[0] === today
-      );
+      setLastRefresh(new Date());      // Calculate statistics with enhanced metrics
+      const todaysOrders = ordersData.filter(order => {
+        const orderDate = parseISO(order.orderDate);
+        return isToday(orderDate);
+      });
       
       const todaysSales = todaysOrders.reduce((sum, order) => {
         const orderTotal = order.payments.reduce((total, payment) => 
@@ -200,13 +199,12 @@ const CashierDashboard = () => {
           </div>
         </div>
       </div>
-    );
-  }
-  // Get today's orders
-  const today = new Date().toISOString().split('T')[0];
-  const todaysOrders = filteredOrders.filter(order => 
-    order.orderDate.split('T')[0] === today
-  );
+    );  }
+    // Get today's orders using date-fns for proper timezone handling
+  const todaysOrders = filteredOrders.filter(order => {
+    const orderDate = parseISO(order.orderDate);
+    return isToday(orderDate);
+  });
   
   // Quick action for updating status
   const quickUpdateStatus = async (orderId: number, newStatus: string) => {
