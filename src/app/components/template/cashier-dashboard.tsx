@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -69,9 +69,13 @@ const CashierDashboard = () => {
   const [isOrderDialogOpen, setIsOrderDialogOpen] = useState(false);
   const [isNewOrderDialogOpen, setIsNewOrderDialogOpen] = useState(false);
   const [isUpdateStatusDialogOpen, setIsUpdateStatusDialogOpen] = useState(false);
-  const [newOrderStatus, setNewOrderStatus] = useState('');
-  const [autoRefresh, setAutoRefresh] = useState(true);
+  const [newOrderStatus, setNewOrderStatus] = useState('');  const [autoRefresh, setAutoRefresh] = useState(true);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [previousOrderCount, setPreviousOrderCount] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [ordersPerPage] = useState(10);
+  
   // Dashboard statistics
   const [stats, setStats] = useState({
     todaysSales: 0,
@@ -81,14 +85,52 @@ const CashierDashboard = () => {
     averageOrderValue: 0,
     efficiency: 0
   });
-
-  // Load orders
-  const loadOrders = async () => {
+  // Sound notification function
+  const playNotificationSound = (type: 'newOrder' | 'statusUpdate' = 'newOrder') => {
+    if (!soundEnabled) return;
+    
+    try {      // Create audio context for different notification sounds
+      const AudioContextClass = window.AudioContext || (window as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      const audioContext = new AudioContextClass();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      if (type === 'newOrder') {
+        // Higher pitch for new orders
+        oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+        oscillator.frequency.setValueAtTime(600, audioContext.currentTime + 0.1);
+      } else {
+        // Lower pitch for status updates
+        oscillator.frequency.setValueAtTime(400, audioContext.currentTime);
+      }
+      
+      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+      
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.3);
+    } catch (error) {
+      console.log('Audio notification not supported:', error);
+    }
+  };  // Load orders
+  const loadOrders = useCallback(async () => {
     try {
-      setIsLoading(true);      const ordersData = await orderApi.getAll();
+      setIsLoading(true);
+      const ordersData = await orderApi.getAll();
+      
+      // Check for new orders and play notification
+      if (orders.length > 0 && ordersData.length > previousOrderCount && previousOrderCount > 0) {
+        playNotificationSound('newOrder');
+        toast.info("New order received!");
+      }
+      
       setOrders(ordersData);
       setFilteredOrders(ordersData);
       setLastRefresh(new Date());
+      setPreviousOrderCount(ordersData.length);
         // Calculate statistics with enhanced metrics
       const today = new Date().toISOString().split('T')[0];
       const todaysOrders = ordersData.filter(order => 
@@ -116,11 +158,10 @@ const CashierDashboard = () => {
         efficiency
       });
     } catch (error) {      console.error('Error loading orders:', error);
-      toast.error("Failed to load orders");
-    } finally {
+      toast.error("Failed to load orders");    } finally {
       setIsLoading(false);
     }
-  };
+  }, [orders.length, previousOrderCount, playNotificationSound]);
 
   // Filter orders
   useEffect(() => {
@@ -183,21 +224,50 @@ const CashierDashboard = () => {
     return order.orderDetails.reduce((total, detail) => 
       total + (detail.unitPrice * detail.quantity), 0
     );
-  };
-  useEffect(() => {
+  };  useEffect(() => {
     loadOrders();
-  }, []);
+  }, [loadOrders]);
 
-  // Auto-refresh functionality
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyPress = (event: KeyboardEvent) => {
+      if (event.ctrlKey || event.metaKey) {
+        switch (event.key) {
+          case 'r':
+            event.preventDefault();
+            loadOrders();
+            toast.info("Orders refreshed");
+            break;
+          case 'n':
+            event.preventDefault();
+            setIsNewOrderDialogOpen(true);
+            break;
+          case 'f':
+            event.preventDefault();
+            const searchInput = document.querySelector('input[placeholder*="Search"]') as HTMLInputElement;
+            if (searchInput) searchInput.focus();
+            break;
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [loadOrders]);
+  // Auto-refresh functionality with useCallback to avoid dependency issues
+  const handleAutoRefresh = useCallback(() => {
+    if (autoRefresh) {
+      loadOrders();
+    }
+  }, [autoRefresh, loadOrders]);
+
   useEffect(() => {
     if (!autoRefresh) return;
     
-    const interval = setInterval(() => {
-      loadOrders();
-    }, 30000); // Refresh every 30 seconds
+    const interval = setInterval(handleAutoRefresh, 30000); // Refresh every 30 seconds
 
     return () => clearInterval(interval);
-  }, [autoRefresh]);
+  }, [autoRefresh, handleAutoRefresh]);
 
   if (isLoading) {
     return (
@@ -212,42 +282,48 @@ const CashierDashboard = () => {
           </div>
         </div>
       </div>
-    );
-  }
-  // Get today's orders
+    );  }
+
+  // Quick action for updating status
+  const quickUpdateStatus = async (orderId: number, newStatus: string) => {
+    try {
+      await orderApi.updateStatus(orderId, newStatus);
+        const updatedOrders = orders.map(order =>
+        order.orderId === orderId ? { ...order, status: newStatus as 'PENDING' | 'PREPARED' | 'DELIVERED' | 'CANCELLED' } : order
+      );
+      setOrders(updatedOrders);
+      
+      // Play sound notification for status update
+      playNotificationSound('statusUpdate');
+      
+      toast.success(`Order #${orderId} updated to ${newStatus}`);
+    } catch (error) {
+      console.error('Error updating order status:', error);
+      toast.error("Failed to update order status");    }
+  };
+
+  // Pagination logic
   const today = new Date().toISOString().split('T')[0];
   const todaysOrders = filteredOrders.filter(order => 
     order.orderDate.split('T')[0] === today
   );
   
-  // Quick action for updating status
-  const quickUpdateStatus = async (orderId: number, newStatus: string) => {
-    try {
-      await orderApi.updateStatus(orderId, newStatus);
-      
-      const updatedOrders = orders.map(order =>
-        order.orderId === orderId ? { ...order, status: newStatus as 'PENDING' | 'PREPARED' | 'DELIVERED' | 'CANCELLED' } : order
-      );
-      setOrders(updatedOrders);
-      
-      toast.success(`Order #${orderId} updated to ${newStatus}`);
-    } catch (error) {
-      console.error('Error updating order status:', error);
-      toast.error("Failed to update order status");
-    }
-  };
+  const totalPages = Math.ceil(todaysOrders.length / ordersPerPage);
+  const startIndex = (currentPage - 1) * ordersPerPage;
+  const endIndex = startIndex + ordersPerPage;
+  const paginatedOrders = todaysOrders.slice(startIndex, endIndex);
 
-  return (
-    <div className="min-h-screen bg-gray-50 p-6">
+  return (    <div className="min-h-screen bg-gray-50 p-3 md:p-6">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 md:mb-8 space-y-4 sm:space-y-0">
         <div>
-          <h1 className="text-4xl font-bold text-gray-900">Cashier Dashboard</h1>
-          <p className="text-gray-600 mt-1">Manage orders efficiently and provide great service</p>
-        </div>        <div className="flex items-center space-x-4">
+          <h1 className="text-2xl md:text-4xl font-bold text-gray-900">Cashier Dashboard</h1>
+          <p className="text-gray-600 mt-1 text-sm md:text-base">Manage orders efficiently and provide great service</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2 md:space-x-4 md:gap-0">
           <Button onClick={loadOrders} variant="outline" size="sm">
             <IconRefresh className="w-4 h-4 mr-2" />
-            Refresh
+            <span className="hidden sm:inline">Refresh</span>
           </Button>
           <Button 
             onClick={() => setAutoRefresh(!autoRefresh)} 
@@ -255,19 +331,33 @@ const CashierDashboard = () => {
             size="sm"
           >
             <IconClock className="w-4 h-4 mr-2" />
-            Auto-refresh {autoRefresh ? 'ON' : 'OFF'}
+            <span className="hidden sm:inline">Auto-refresh {autoRefresh ? 'ON' : 'OFF'}</span>
+            <span className="sm:hidden">{autoRefresh ? 'ON' : 'OFF'}</span>
           </Button>
-          <div className="text-xs text-gray-500">
+          <Button 
+            onClick={() => setSoundEnabled(!soundEnabled)} 
+            variant={soundEnabled ? "default" : "outline"} 
+            size="sm"
+          >
+            {soundEnabled ? '🔊' : '🔇'}
+            <span className="hidden sm:inline ml-2">Sound {soundEnabled ? 'ON' : 'OFF'}</span>
+          </Button>
+          <div className="text-xs text-gray-500 hidden md:block">
             Last updated: {lastRefresh.toLocaleTimeString()}
-          </div>
-          <Badge variant="secondary" className="bg-blue-100 text-blue-800 px-4 py-2">
+          </div>          <Badge variant="secondary" className="bg-blue-100 text-blue-800 px-4 py-2">
             Cashier Mode
           </Badge>
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => toast.info("Keyboard shortcuts: Ctrl+R (Refresh), Ctrl+N (New Order), Ctrl+F (Search)")}
+            className="hidden md:flex"
+          >
+            ?
+          </Button>
         </div>
-      </div>
-
-      {/* Enhanced Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      </div>      {/* Enhanced Statistics */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-6 mb-6 md:mb-8">
         <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Today&apos;s Revenue</CardTitle>
@@ -319,20 +409,48 @@ const CashierDashboard = () => {
             </p>
           </CardContent>
         </Card>
+
+        <Card className="bg-gradient-to-r from-teal-500 to-teal-600 text-white">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Avg Order Value</CardTitle>
+            <IconCurrencyDollar className="h-5 w-5" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold">Rp {Math.round(stats.averageOrderValue).toLocaleString()}</div>
+            <p className="text-teal-100 text-sm mt-1">
+              Per order today
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-r from-indigo-500 to-indigo-600 text-white">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Efficiency</CardTitle>
+            <IconCheck className="h-5 w-5" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold">{Math.round(stats.efficiency)}%</div>
+            <p className="text-indigo-100 text-sm mt-1">
+              Completion rate
+            </p>
+          </CardContent>
+        </Card>
       </div>      {/* Today's Orders - Card Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
         {/* Orders List */}
         <div className="lg:col-span-2">
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>                  <CardTitle className="text-xl">Today&apos;s Orders</CardTitle>
+              <div className="flex flex-col md:flex-row items-start md:items-center justify-between space-y-4 md:space-y-0">
+                <div>
+                  <CardTitle className="text-lg md:text-xl">Today&apos;s Orders</CardTitle>
                   <CardDescription>
                     {todaysOrders.length} orders • {todaysOrders.filter(o => o.status === 'PENDING').length} pending confirmation
                   </CardDescription>
-                </div>                <div className="flex space-x-2">
+                </div>
+                <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 w-full md:w-auto">
                   <Select value={statusFilter} onValueChange={setStatusFilter}>
-                    <SelectTrigger className="w-40">
+                    <SelectTrigger className="w-full sm:w-40">
                       <SelectValue placeholder="Filter status" />
                     </SelectTrigger>
                     <SelectContent>
@@ -342,10 +460,9 @@ const CashierDashboard = () => {
                       <SelectItem value="DELIVERED">Delivered</SelectItem>
                       <SelectItem value="CANCELLED">Cancelled</SelectItem>
                     </SelectContent>
-                  </Select>
-                  
+                  </Select>                  
                   <Select value={paymentFilter} onValueChange={setPaymentFilter}>
-                    <SelectTrigger className="w-40">
+                    <SelectTrigger className="w-full sm:w-40">
                       <SelectValue placeholder="Payment status" />
                     </SelectTrigger>
                     <SelectContent>
@@ -382,26 +499,24 @@ const CashierDashboard = () => {
                     <IconShoppingCart className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                     <h3 className="text-lg font-medium text-gray-900 mb-2">No orders today</h3>
                     <p className="text-gray-500">Orders will appear here as they come in</p>
-                  </div>
-                ) : (
-                  todaysOrders.map((order) => (
+                  </div>                ) : (
+                  paginatedOrders.map((order) => (
                     <Card key={order.orderId} className={`border-l-4 transition-all hover:shadow-md ${
                       order.status === 'PENDING' ? 'border-l-yellow-500 bg-yellow-50' :
                       order.status === 'PREPARED' ? 'border-l-blue-500 bg-blue-50' :
                       order.status === 'DELIVERED' ? 'border-l-green-500 bg-green-50' :
                       'border-l-red-500 bg-red-50'
-                    }`}>
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
+                    }`}>                      <CardContent className="p-3 md:p-4">
+                        <div className="flex flex-col lg:flex-row lg:items-center justify-between space-y-4 lg:space-y-0">
                           <div className="flex-1">
-                            <div className="flex items-center space-x-3 mb-2">
-                              <Badge variant="outline" className="font-mono">
+                            <div className="flex flex-wrap items-center gap-2 mb-2">
+                              <Badge variant="outline" className="font-mono text-xs">
                                 #{order.orderId}
                               </Badge>
                               <Badge className={getStatusColor(order.status)}>
                                 {order.status}
                               </Badge>
-                              <span className="text-sm text-gray-500">
+                              <span className="text-xs md:text-sm text-gray-500">
                                 {new Date(order.orderDate).toLocaleTimeString('en-US', {
                                   hour: '2-digit',
                                   minute: '2-digit'
@@ -409,14 +524,14 @@ const CashierDashboard = () => {
                               </span>
                             </div>
                             
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
                               <div>
-                                <p className="font-medium text-gray-900">{order.user.fullName}</p>
-                                <p className="text-sm text-gray-500">{order.user.email}</p>
+                                <p className="font-medium text-gray-900 text-sm md:text-base">{order.user.fullName}</p>
+                                <p className="text-xs md:text-sm text-gray-500">{order.user.email}</p>
                               </div>
-                              <div className="text-right md:text-left">
-                                <p className="text-sm text-gray-500">Order Total</p>
-                                <p className="font-bold text-lg text-gray-900">
+                              <div className="text-left sm:text-right lg:text-left">
+                                <p className="text-xs md:text-sm text-gray-500">Order Total</p>
+                                <p className="font-bold text-base md:text-lg text-gray-900">
                                   Rp {calculateOrderTotal(order).toLocaleString()}
                                 </p>
                               </div>
@@ -440,41 +555,40 @@ const CashierDashboard = () => {
                                 )}
                               </div>
                             </div>
-                          </div>
-
-                          {/* Quick Actions */}
-                          <div className="flex flex-col space-y-2 ml-4">
+                          </div>                          {/* Quick Actions */}
+                          <div className="flex lg:flex-col flex-row gap-2 lg:space-y-2 lg:space-x-0 lg:ml-4 mt-4 lg:mt-0">
                             <Button
                               variant="outline"
                               size="sm"
+                              className="flex-1 lg:flex-none"
                               onClick={() => {
                                 setSelectedOrder(order);
                                 setIsOrderDialogOpen(true);
                               }}
                             >
-                              <IconEye className="w-4 h-4 mr-2" />
-                              View
+                              <IconEye className="w-4 h-4 lg:mr-2" />
+                              <span className="hidden lg:inline">View</span>
                             </Button>
 
                             {order.status === 'PENDING' && (
                               <Button
                                 size="sm"
-                                className="bg-green-600 hover:bg-green-700"
+                                className="bg-green-600 hover:bg-green-700 flex-1 lg:flex-none"
                                 onClick={() => quickUpdateStatus(order.orderId, 'PREPARED')}
                               >
-                                <IconCheck className="w-4 h-4 mr-2" />
-                                Confirm
+                                <IconCheck className="w-4 h-4 lg:mr-2" />
+                                <span className="hidden lg:inline">Confirm</span>
                               </Button>
                             )}
 
                             {order.status === 'PREPARED' && (
                               <Button
                                 size="sm"
-                                className="bg-blue-600 hover:bg-blue-700"
+                                className="bg-blue-600 hover:bg-blue-700 flex-1 lg:flex-none"
                                 onClick={() => quickUpdateStatus(order.orderId, 'DELIVERED')}
                               >
-                                <IconCheck className="w-4 h-4 mr-2" />
-                                Complete
+                                <IconCheck className="w-4 h-4 lg:mr-2" />
+                                <span className="hidden lg:inline">Complete</span>
                               </Button>
                             )}
 
@@ -482,23 +596,63 @@ const CashierDashboard = () => {
                               <Button
                                 variant="outline"
                                 size="sm"
+                                className="flex-1 lg:flex-none"
                                 onClick={() => {
                                   setSelectedOrder(order);
                                   setNewOrderStatus(order.status);
                                   setIsUpdateStatusDialogOpen(true);
                                 }}
                               >
-                                <IconEdit className="w-4 h-4 mr-2" />
-                                Edit
+                                <IconEdit className="w-4 h-4 lg:mr-2" />
+                                <span className="hidden lg:inline">Edit</span>
                               </Button>
                             )}
                           </div>
                         </div>
-                      </CardContent>
-                    </Card>
+                      </CardContent>                    </Card>
                   ))
                 )}
               </div>
+
+              {/* Pagination Controls */}
+              {todaysOrders.length > ordersPerPage && (
+                <div className="flex items-center justify-between mt-6 pt-4 border-t">
+                  <div className="text-sm text-gray-500">
+                    Showing {startIndex + 1}-{Math.min(endIndex, todaysOrders.length)} of {todaysOrders.length} orders
+                  </div>
+                  <div className="flex space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                      disabled={currentPage === 1}
+                    >
+                      Previous
+                    </Button>
+                    <div className="flex space-x-1">
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                        <Button
+                          key={page}
+                          variant={currentPage === page ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setCurrentPage(page)}
+                          className="w-8 h-8 p-0"
+                        >
+                          {page}
+                        </Button>
+                      ))}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                      disabled={currentPage === totalPages}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

@@ -1,8 +1,9 @@
 import axios from 'axios';
+import { Promotion } from '@/store/cart-store';
 
 // Create axios instance with base configuration
 const api = axios.create({
-  baseURL: process.env.NODE_ENV === 'production' ? '/api' : '/api',
+  baseURL: process.env.NEXT_PUBLIC_SPRING_BOOT_URL || 'http://localhost:8080/api',
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
@@ -152,17 +153,133 @@ export const userApi = {
   },
 };
 
+// Order types
+export interface Order {
+  orderId: number;
+  user: {
+    id: string;
+    username: string;
+    email: string;
+    fullName: string;
+  };
+  orderDate: string;
+  status: 'PENDING' | 'PREPARED' | 'DELIVERED' | 'CANCELLED';
+  orderDetails: OrderDetail[];
+  payments: Payment[];
+  orderPromotions?: OrderPromotion[];
+}
+
+export interface OrderDetail {
+  id: number;
+  product: {
+    productId: number;
+    name: string;
+    price: number;
+    category: {
+      name: string;
+    };
+  };
+  quantity: number;
+  unitPrice: number;
+}
+
+export interface Payment {
+  paymentId: number;
+  type: string;
+  amount: number;
+  status: 'PENDING' | 'COMPLETED' | 'FAILED' | 'SETTLEMENT' | 'CAPTURE' | 'DENY' | 'CANCEL' | 'EXPIRE';
+  paymentDate: string;
+  transactionId?: string;
+  paymentMethod?: string;
+  bank?: string;
+}
+
+export interface OrderPromotion {
+  id: number;
+  promotion: {
+    promotionId: number;
+    name: string;
+    discountPercentage?: number;
+    discountAmount?: number;
+  };
+}
+
+export interface CreateOrderRequest {
+  userId: string;
+  items: {
+    productId: number;
+    quantity: number;
+  }[];
+  paymentInfo: {
+    type: string;
+    paymentMethod?: string;
+    transactionId?: string;
+    bank?: string;
+    vaNumber?: string;
+  };
+}
+
 // Order API functions
 export const orderApi = {
   // Get all orders
-  getAll: async () => {
+  getAll: async (): Promise<Order[]> => {
     const response = await api.get('/orders');
     return response.data;
   },
 
+  // Get order by ID
+  getById: async (id: number): Promise<Order> => {
+    const response = await api.get(`/orders/${id}`);
+    return response.data;
+  },
+
+  // Get order payment info
+  getPayment: async (id: number) => {
+    const response = await api.get(`/orders/${id}/payment`);
+    return response.data;
+  },
+
+  // Get payment summary for all orders
+  getPaymentSummary: async () => {
+    const response = await api.get('/orders/payment-summary');
+    return response.data;
+  },
+
   // Create new order
-  create: async (orderData: any) => {
+  create: async (orderData: CreateOrderRequest): Promise<Order> => {
     const response = await api.post('/orders', orderData);
+    return response.data;
+  },
+
+  // Create order with promotions
+  createWithPromotions: async (orderData: CreateOrderRequest & { promotionIds: number[] }): Promise<Order> => {
+    const response = await api.post('/orders/with-promotions', orderData);
+    return response.data;
+  },
+  // Update payment status
+  updatePaymentStatus: async (orderId: number, paymentData: {
+    transactionId?: string;
+    status?: string;
+    fraudStatus?: string;
+    bank?: string;
+    vaNumber?: string;
+  }) => {
+    const response = await api.post(`/orders/${orderId}/payment`, paymentData);
+    return response.data as { success: boolean; message: string };
+  },
+
+  // Get available promotions for order
+  getAvailablePromotions: async (orderTotal?: number) => {
+    const url = orderTotal 
+      ? `/orders/available-promotions?orderTotal=${orderTotal}`
+      : '/orders/available-promotions';
+    const response = await api.get(url);
+    return response.data as Promotion[];
+  },
+
+  // Update order status
+  updateStatus: async (orderId: number, status: string) => {
+    const response = await api.put(`/orders/${orderId}/status`, { status });
     return response.data;
   },
 };
