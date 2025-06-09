@@ -8,6 +8,9 @@ import {
   IconUserCircle,
 } from "@tabler/icons-react"
 
+import { signOut } from "@/lib/auth-client"
+import { useRouter } from "next/navigation"
+
 import {
   Avatar,
   AvatarFallback,
@@ -39,6 +42,26 @@ export function NavUser({
   }
 }) {
   const { isMobile } = useSidebar()
+  const router = useRouter()
+
+  const handleLogout = async () => {
+    try {
+      // Clear role cookie by calling our API endpoint
+      await fetch('/api/auth/clear-role', {
+        method: 'POST',
+      })
+      
+      // Sign out using better-auth
+      await signOut()
+      
+      // Redirect to home page
+      router.push('/')
+    } catch (error) {
+      console.error('Logout error:', error)
+      // Still redirect even if there's an error
+      router.push('/')
+    }
+  }
 
   return (
     <SidebarMenu>
@@ -98,7 +121,7 @@ export function NavUser({
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={handleLogout}>
               <IconLogout />
               Log out
             </DropdownMenuItem>

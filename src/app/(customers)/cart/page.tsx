@@ -96,9 +96,7 @@ export default function CartPage() {
         </div>
       </div>
     );
-  }
-
-  return (
+  }  return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-4xl mx-auto px-4">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Shopping Cart</h1>
@@ -197,13 +195,11 @@ export default function CartPage() {
         {/* API Test Section */}
         <div className="mt-8 bg-gray-100 rounded-lg p-6">
           <h3 className="text-lg font-semibold mb-3">Hono Cart API Features</h3>
-          <ul className="list-disc list-inside text-gray-700 space-y-1">
-            <li>GET /api/cart/{userId} - Fetch user cart</li>
+          <ul className="list-disc list-inside text-gray-700 space-y-1">            <li>GET /api/cart/{userId} - Fetch user cart</li>
             <li>POST /api/cart/{userId}/add - Add item to cart</li>
             <li>PUT /api/cart/{userId}/update - Update cart item</li>
             <li>DELETE /api/cart/{userId}/remove - Remove item from cart</li>
-          </ul>
-        </div>
+          </ul>        </div>
       </div>
     </div>
   );

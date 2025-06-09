@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { CashierOnly } from "@/components/role-guard";
 import { 
   IconCurrencyDollar, 
   IconShoppingCart, 
@@ -222,9 +223,9 @@ const CashierDashboard = () => {
       toast.error("Failed to update order status");
     }
   };
-
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <CashierOnly>
+      <div className="min-h-screen bg-gray-50 p-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
@@ -792,10 +793,10 @@ const CashierDashboard = () => {
             >
               Update Status
             </Button>
-          </DialogFooter>
-        </DialogContent>
+          </DialogFooter>        </DialogContent>
       </Dialog>
     </div>
+    </CashierOnly>
   );
 };
 

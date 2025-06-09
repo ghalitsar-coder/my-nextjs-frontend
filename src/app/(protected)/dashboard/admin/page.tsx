@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { AdminOnly } from "@/components/role-guard";
 import { 
   IconCurrencyDollar, 
   IconShoppingCart, 
@@ -144,9 +145,9 @@ const AdminDashboard = () => {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-
   return (
-    <div className="space-y-6">      {/* Header with gradient background */}
+    <AdminOnly>
+      <div className="space-y-6">{/* Header with gradient background */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 p-8 text-white shadow-2xl">
         <div className="absolute inset-0 bg-black/10"></div>
         <div className="relative z-10">
@@ -567,10 +568,10 @@ const AdminDashboard = () => {
             <Button variant="destructive" onClick={() => setIsDeleteOpen(false)}>
               Delete
             </Button>
-          </DialogFooter>
-        </DialogContent>
+          </DialogFooter>        </DialogContent>
       </Dialog>
     </div>
+    </AdminOnly>
   );
 };
 

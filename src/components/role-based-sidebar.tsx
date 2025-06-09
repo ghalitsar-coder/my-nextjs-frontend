@@ -293,11 +293,11 @@ export function RoleBasedSidebar({
   // Determine navigation based on user role
   const getNavigationByRole = () => {
     if (isPending) {
-      return adminNavigation; // Show default while loading
+      return defaultNavigation; // Show default while loading
     }
 
     if (!session?.user) {
-      return adminNavigation; // Show default if no session
+      return defaultNavigation; // Show default if no session
     }
 
     // Handle different possible role field names
@@ -311,8 +311,7 @@ export function RoleBasedSidebar({
         return adminNavigation;
       case "cashier":
         return cashierNavigation;
-      case "customer":
-        return adminNavigation; // Customers get basic navigation
+       
       default:
         return adminNavigation;
     }

@@ -69,9 +69,23 @@ export const auth = betterAuth({
       sameSite: "lax",
       secure: process.env.NODE_ENV === "production",
     },
-  },
-  hooks: {
+  },  hooks: {
     after: createAuthMiddleware(async (ctx) => {
+      // Check if this is a sign-in operation
+      if (ctx.path.startsWith("/sign-in") && ctx.context.newSession) {
+        const newSession = ctx.context.newSession;
+        if (newSession && newSession.user) {
+          console.log("User signed in, setting role cookie:", newSession.user.role);
+          // Set role cookie for middleware access
+          if (ctx.context.response) {
+            ctx.context.response.headers.set(
+              'Set-Cookie', 
+              `user-role=${newSession.user.role || 'customer'}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${60 * 60 * 24 * 7}`
+            );
+          }
+        }
+      }
+
       // Check if this is a sign-up operation that created a new user
       if (ctx.path.startsWith("/sign-up")) {
         const newSession = ctx.context.newSession;
@@ -79,6 +93,14 @@ export const auth = betterAuth({
           try {
           console.log("New user created, sending to Spring Boot:", newSession.user);
             
+            // Set role cookie for new user
+            if (ctx.context.response) {
+              ctx.context.response.headers.set(
+                'Set-Cookie', 
+                `user-role=${newSession.user.role || 'customer'}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${60 * 60 * 24 * 7}`
+              );
+            }
+
             const response = await axios.post(
               `${process.env.SPRING_BOOT_URL}/users`,
               {
@@ -105,13 +127,20 @@ export const auth = betterAuth({
           }
         }
       }
-      
-      // Check for OAuth sign-up (Google)
+        // Check for OAuth sign-up (Google)
       if (ctx.path.includes("/callback") && ctx.path.includes("google")) {
         const newSession = ctx.context.newSession;
         if (newSession && newSession.user) {
           try {
             console.log("OAuth user created, sending to Spring Boot:", newSession.user);
+            
+            // Set role cookie for OAuth user
+            if (ctx.context.response) {
+              ctx.context.response.headers.set(
+                'Set-Cookie', 
+                `user-role=${newSession.user.role || 'customer'}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${60 * 60 * 24 * 7}`
+              );
+            }
             
             const response = await axios.post(
               `${process.env.SPRING_BOOT_URL}/users-fixed`,
