@@ -34,6 +34,7 @@ export async function middleware(request: NextRequest) {
     const customerOnlyRoutes = [
       '/cart',
       '/order',
+      '/order-history',
       '/payment',
       '/payment-complete',
       '/product'

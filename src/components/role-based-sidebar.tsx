@@ -252,8 +252,7 @@ const cashierNavigation = [
       {
         title: "Transaction Log",
         url: "/dashboard/cashier/reports/transactions",
-      },
-    ],
+      },    ],
   },
 ];
 
@@ -302,18 +301,15 @@ export function RoleBasedSidebar({
 
     // Handle different possible role field names
     const user = session.user as UserWithRole;
-    const userRole = user.role || "customer";
-
-    console.log(`Determined user role: ${userRole}`);
+    const userRole = user.role || "customer";    console.log(`Determined user role: ${userRole}`);
 
     switch (userRole) {
       case "admin":
         return adminNavigation;
       case "cashier":
         return cashierNavigation;
-       
       default:
-        return adminNavigation;
+        return defaultNavigation; // Default for unknown roles
     }
   };
   const navigationData = getNavigationByRole();

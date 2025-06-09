@@ -210,7 +210,7 @@ export default function Header({ className = "" }: HeaderProps) {
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
-                    <Link href="/order">Order History</Link>
+                    <Link href="/order-history">Order History</Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
                     <Link href="/profile">Profile</Link>

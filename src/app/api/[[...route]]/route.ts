@@ -298,6 +298,27 @@ app.get("/api/orders", async (c) => {
   }
 });
 
+// Get orders by user ID
+app.get("/api/orders/user/:userId", async (c) => {
+  try {
+    const userId = c.req.param("userId");
+    const response = await fetch(`${SPRING_BOOT_BASE_URL}/orders/user/${userId}`);
+      if (!response.ok) {
+      console.error(`Failed to fetch orders for user ${userId}, status: ${response.status}`);
+      if (response.status === 404) {
+        return c.json({ error: "User orders not found" }, 404);
+      }
+      return c.json({ error: "Failed to fetch user orders" }, 500);
+    }
+    
+    const data = await response.json();
+    return c.json(data);
+  } catch (error) {
+    console.error("Error fetching user orders:", error);
+    return c.json({ error: "Failed to fetch user orders" }, 500);
+  }
+});
+
 app.post("/api/orders", async (c) => {
   try {
     const body = await c.req.json();
