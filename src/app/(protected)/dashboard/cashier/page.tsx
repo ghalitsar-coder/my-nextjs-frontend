@@ -69,9 +69,7 @@ const CashierDashboard = () => {
   const [isOrderDialogOpen, setIsOrderDialogOpen] = useState(false);
   const [isNewOrderDialogOpen, setIsNewOrderDialogOpen] = useState(false);
   const [isUpdateStatusDialogOpen, setIsUpdateStatusDialogOpen] = useState(false);
-  const [newOrderStatus, setNewOrderStatus] = useState('');
-  const [autoRefresh, setAutoRefresh] = useState(true);
-  const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
+  const [newOrderStatus, setNewOrderStatus] = useState('');  const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
   // Dashboard statistics
   const [stats, setStats] = useState({
     todaysSales: 0,
@@ -188,17 +186,7 @@ const CashierDashboard = () => {
     loadOrders();
   }, []);
 
-  // Auto-refresh functionality
-  useEffect(() => {
-    if (!autoRefresh) return;
-    
-    const interval = setInterval(() => {
-      loadOrders();
-    }, 30000); // Refresh every 30 seconds
-
-    return () => clearInterval(interval);
-  }, [autoRefresh]);
-
+ 
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -248,14 +236,6 @@ const CashierDashboard = () => {
           <Button onClick={loadOrders} variant="outline" size="sm">
             <IconRefresh className="w-4 h-4 mr-2" />
             Refresh
-          </Button>
-          <Button 
-            onClick={() => setAutoRefresh(!autoRefresh)} 
-            variant={autoRefresh ? "default" : "outline"} 
-            size="sm"
-          >
-            <IconClock className="w-4 h-4 mr-2" />
-            Auto-refresh {autoRefresh ? 'ON' : 'OFF'}
           </Button>
           <div className="text-xs text-gray-500">
             Last updated: {lastRefresh.toLocaleTimeString()}
