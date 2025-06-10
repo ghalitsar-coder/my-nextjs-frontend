@@ -93,7 +93,8 @@ const adminNavigation = [
         title: "Inventory",
         url: "/dashboard/admin/products/inventory",
       },
-    ],  },
+    ],
+  },
   {
     title: "Promotions",
     url: "/dashboard/admin/promotions",
@@ -193,7 +194,8 @@ const cashierNavigation = [
         url: "/dashboard/cashier/pos/current",
       },
     ],
-  },  {
+  },
+  {
     title: "Order History",
     url: "/dashboard/cashier/order-history",
     icon: IconHistory,
@@ -254,7 +256,8 @@ const cashierNavigation = [
       {
         title: "Transaction Log",
         url: "/dashboard/cashier/reports/transactions",
-      },    ],
+      },
+    ],
   },
 ];
 
@@ -281,7 +284,7 @@ export function RoleBasedSidebar({
   variant = "sidebar",
 }: RoleBasedSidebarProps) {
   const { data: session, isPending } = useSession();
- 
+
   console.log(`User role:`, session?.user?.role);
   // Default navigation while loading
   const defaultNavigation = [
@@ -303,7 +306,8 @@ export function RoleBasedSidebar({
 
     // Handle different possible role field names
     const user = session.user as UserWithRole;
-    const userRole = user.role || "customer";    console.log(`Determined user role: ${userRole}`);
+    const userRole = user.role || "customer";
+    console.log(`Determined user role: ${userRole}`);
 
     switch (userRole) {
       case "admin":

@@ -37,7 +37,6 @@ export async function middleware(request: NextRequest) {
       '/order-history',
       '/payment',
       '/payment-complete',
-      '/product'
     ];
 
     const adminOnlyRoutes = [

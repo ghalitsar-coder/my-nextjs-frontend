@@ -49,18 +49,15 @@ declare global {
 }
 
 export default function PaymentPage() {
-  const router = useRouter();
-  const {
+  const router = useRouter();  const {
     items,
     totalPrice,
     clearCart,
-    // Promotion state and actions from cart store
+    // Promotion state - read only for display
     availablePromotions,
     selectedPromotions,
     discountAmount,
     isLoadingPromotions,
-    togglePromotion,
-    fetchAvailablePromotions, // Use centralized fetch function
   } = useCartStore();
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
   const [isProcessing, setIsProcessing] = useState(false);
@@ -71,43 +68,26 @@ export default function PaymentPage() {
   // Calculate subtotal
   const calculateSubtotal = useCallback(() => {
     return totalPrice; // Use totalPrice from cart store
-  }, [totalPrice]); // Handle promotion selection - use cart store's togglePromotion
-  const handlePromotionToggle = useCallback(
-    (promotionId: number) => {
-      togglePromotion(promotionId);
-    },
-    [togglePromotion]
-  ); // Fetch available promotions and load saved promotions from localStorage
-  useEffect(() => {
-    // Fetch available promotions when component mounts or cart changes
-    if (items.length > 0) {
-      fetchAvailablePromotions();
-    }
+  }, [totalPrice]);  // Note: Promotion handling is disabled in payment page to prevent double application
+  // Promotions are applied once in OrderPage and carried over here for display only
 
-    // Load saved selected promotions from localStorage
+  // Load promotions for display only - do not fetch new ones or apply changes
+  useEffect(() => {
+    // Only load saved promotions from localStorage for display
+    // Do NOT fetch new promotions or allow changes
     const savedPromotions = localStorage.getItem("coffee-selected-promotions");
     if (savedPromotions) {
       try {
         const promotionIds = JSON.parse(savedPromotions);
         if (Array.isArray(promotionIds)) {
-          // Apply saved promotions - the cart store will handle discount calculation
-          promotionIds.forEach((id) => {
-            if (!selectedPromotions.includes(id)) {
-              togglePromotion(id);
-            }
-          });
+          // Only set the selected promotions for display, don't trigger changes
+          // The discount should already be calculated from OrderPage
         }
       } catch (error) {
         console.error("Error loading saved promotions:", error);
       }
     }
-  }, [
-    items.length,
-    fetchAvailablePromotions,
-    selectedPromotions,
-    togglePromotion,
-  ]);
-
+  }, []); // Remove dependencies to prevent re-fetching
   // Save selected promotions to localStorage when they change
   useEffect(() => {
     if (selectedPromotions.length > 0) {
@@ -119,6 +99,9 @@ export default function PaymentPage() {
       localStorage.removeItem("coffee-selected-promotions");
     }
   }, [selectedPromotions]);
+
+  // Helper for formatting currency to IDR
+  
 
   // Load Midtrans Snap script
   useEffect(() => {
@@ -151,15 +134,26 @@ export default function PaymentPage() {
     setPaymentMethod(method);
   };
   // Service fee (in IDR)
-  const serviceFee = 2500;
-  // Calculate total (returns as number for IDR)
-  const calculateTotal = () => {
+  const serviceFee = Math.max(Math.round(calculateSubtotal() * 0.025), 2000);
+  // Helper for formatting currency to IDR
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat("id-ID", {
+      style: "currency",
+      currency: "IDR",
+      minimumFractionDigits: 0,
+    }).format(amount);
+  };
+  // Calculate total with service fee and discount
+  const calculateTotal = useCallback(() => {
     const subtotal = calculateSubtotal();
-    return Math.round(subtotal + serviceFee - discountAmount);
-  };// Create Midtrans transaction
+    return subtotal + serviceFee - discountAmount;
+  }, [calculateSubtotal, serviceFee, discountAmount]); // Create Midtrans transaction
   const createMidtransTransaction = async () => {
-    try {      // Calculate final amount including service fee and discount (all in IDR)
-      const finalAmount = Math.round(calculateSubtotal() + serviceFee - discountAmount);
+    try {
+      // Calculate final amount including service fee and discount (all in IDR)
+      const finalAmount = Math.round(
+        calculateSubtotal() + serviceFee - discountAmount
+      );
 
       // Create item details array
       const itemDetails = orderItems.map((item) => ({
@@ -529,16 +523,16 @@ export default function PaymentPage() {
                       Loading...
                     </span>
                   )}
-                </label>
-
-                {availablePromotions.length === 0 && !isLoadingPromotions ? (
+                </label>                {availablePromotions.length === 0 && !isLoadingPromotions ? (
                   <div className="bg-gray-50 border-2 border-dashed border-gray-200 rounded-xl p-6 text-center">
                     <i className="fas fa-tag text-3xl text-gray-300 mb-2"></i>
                     <p className="text-gray-500">
-                      No promotions available for your current order
+                      {selectedPromotions.length > 0 
+                        ? `${selectedPromotions.length} promotion(s) applied from previous step`
+                        : "No promotions available for your current order"}
                     </p>
                     <p className="text-sm text-gray-400 mt-1">
-                      Add more items or increase quantity to unlock promotions
+                      Promotions can only be changed in the order page
                     </p>
                   </div>
                 ) : (
@@ -546,14 +540,11 @@ export default function PaymentPage() {
                     {availablePromotions.map((promotion) => (
                       <div
                         key={promotion.promotionId}
-                        className={`border-2 rounded-xl p-4 cursor-pointer transition-all duration-200 ${
+                        className={`border-2 rounded-xl p-4 transition-all duration-200 ${
                           selectedPromotions.includes(promotion.promotionId)
                             ? "border-purple-600 bg-gradient-to-r from-purple-50 to-indigo-50 shadow-md"
-                            : "border-gray-200 hover:border-purple-300 hover:shadow-sm"
+                            : "border-gray-200 bg-gray-50"
                         }`}
-                        onClick={() =>
-                          handlePromotionToggle(promotion.promotionId)
-                        }
                       >
                         <div className="flex items-start justify-between">
                           <div className="flex items-start">
@@ -562,10 +553,8 @@ export default function PaymentPage() {
                               checked={selectedPromotions.includes(
                                 promotion.promotionId
                               )}
-                              onChange={() =>
-                                handlePromotionToggle(promotion.promotionId)
-                              }
-                              className="w-5 h-5 text-purple-600 mt-1 mr-3"
+                              disabled={true}
+                              className="w-5 h-5 text-purple-600 mt-1 mr-3 opacity-50 cursor-not-allowed"
                             />
                             <div>
                               <h3 className="font-semibold text-gray-800 mb-1">
@@ -574,34 +563,32 @@ export default function PaymentPage() {
                               <p className="text-sm text-gray-600 mb-2">
                                 {promotion.description}
                               </p>
-                              <div className="flex flex-wrap gap-2 text-xs">                                <span className="bg-green-100 text-green-700 px-2 py-1 rounded-full">
+                              <div className="flex flex-wrap gap-2 text-xs">
+                                <span className="bg-green-100 text-green-700 px-2 py-1 rounded-full">
                                   {promotion.promotionType === "FIXED_AMOUNT"
-                                    ? `IDR ${promotion.discountValue.toLocaleString('id-ID')} off`
-                                    : `${
-                                        promotion.discountValue > 1
-                                          ? promotion.discountValue
-                                          : promotion.discountValue * 100
-                                      }% off`}
+                                    ? `${formatCurrency(promotion.discountValue)} OFF`
+                                    : `${promotion.discountValue > 1 ? promotion.discountValue : promotion.discountValue * 100}% OFF`}
                                 </span>
                                 {promotion.minimumPurchaseAmount && (
                                   <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
-                                    Min: IDR {promotion.minimumPurchaseAmount.toLocaleString('id-ID')}
+                                    Min: {formatCurrency(promotion.minimumPurchaseAmount)}
                                   </span>
                                 )}
                                 {promotion.maximumUses && (
                                   <span className="bg-orange-100 text-orange-700 px-2 py-1 rounded-full">
-                                    {promotion.maximumUses -
-                                      (promotion.currentUses || 0)}{" "}
-                                    uses left
+                                    {promotion.maximumUses - (promotion.currentUses || 0)} uses left
                                   </span>
                                 )}
                               </div>
+                              {selectedPromotions.includes(promotion.promotionId) && (
+                                <p className="text-xs text-purple-600 mt-2 font-medium">
+                                  ✓ Applied from order page
+                                </p>
+                              )}
                             </div>
                           </div>
                           <div className="text-right">
-                            {selectedPromotions.includes(
-                              promotion.promotionId
-                            ) && (
+                            {selectedPromotions.includes(promotion.promotionId) && (
                               <div className="bg-purple-600 text-white p-2 rounded-full">
                                 <i className="fas fa-check text-sm"></i>
                               </div>
@@ -610,6 +597,14 @@ export default function PaymentPage() {
                         </div>
                       </div>
                     ))}
+                    {selectedPromotions.length > 0 && (
+                      <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-center">
+                        <i className="fas fa-info-circle text-blue-600 mr-2"></i>
+                        <span className="text-blue-700 text-sm">
+                          Promotions were applied in the previous step and cannot be changed here.
+                        </span>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

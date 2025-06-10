@@ -1,19 +1,45 @@
-'use client';
+"use client";
 
 import React, { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { CashierOnly } from "@/components/role-guard";
-import { 
-  IconCurrencyDollar, 
-  IconShoppingCart, 
+import {
+  IconCurrencyDollar,
+  IconShoppingCart,
   IconClock,
   IconEye,
   IconSearch,
@@ -25,48 +51,55 @@ import {
   IconShoppingBag,
   IconChevronLeft,
   IconChevronRight,
-  IconFilter
+  IconFilter,
 } from "@tabler/icons-react";
 import { toast } from "sonner";
 import { orderApi, Order } from "@/lib/api";
-import { format, isToday, isYesterday, isThisWeek, isThisMonth, parseISO } from 'date-fns';
+import {
+  format,
+  isToday,
+  isYesterday,
+  isThisWeek,
+  isThisMonth,
+  parseISO,
+} from "date-fns";
 
 // Status color mapping
 const getStatusColor = (status: string) => {
   switch (status) {
-    case 'PENDING':
-      return 'bg-yellow-100 text-yellow-800 border-yellow-300';
-    case 'CONFIRMED':
-      return 'bg-blue-100 text-blue-800 border-blue-300';
-    case 'PREPARING':
-      return 'bg-orange-100 text-orange-800 border-orange-300';
-    case 'READY':
-      return 'bg-purple-100 text-purple-800 border-purple-300';
-    case 'DELIVERED':
-      return 'bg-green-100 text-green-800 border-green-300';
-    case 'CANCELLED':
-      return 'bg-red-100 text-red-800 border-red-300';
+    case "PENDING":
+      return "bg-yellow-100 text-yellow-800 border-yellow-300";
+    case "CONFIRMED":
+      return "bg-blue-100 text-blue-800 border-blue-300";
+    case "PREPARING":
+      return "bg-orange-100 text-orange-800 border-orange-300";
+    case "READY":
+      return "bg-purple-100 text-purple-800 border-purple-300";
+    case "DELIVERED":
+      return "bg-green-100 text-green-800 border-green-300";
+    case "CANCELLED":
+      return "bg-red-100 text-red-800 border-red-300";
     default:
-      return 'bg-gray-100 text-gray-800 border-gray-300';
+      return "bg-gray-100 text-gray-800 border-gray-300";
   }
 };
 
 // Payment status color mapping
 const getPaymentStatusColor = (status: string) => {
   switch (status) {
-    case 'COMPLETED':
-    case 'SETTLEMENT':
-    case 'CAPTURE':
-      return 'bg-green-100 text-green-800 border-green-300';
-    case 'PENDING':
-      return 'bg-yellow-100 text-yellow-800 border-yellow-300';
-    case 'FAILED':
-    case 'DENY':
-    case 'CANCEL':
-    case 'EXPIRE':
-      return 'bg-red-100 text-red-800 border-red-300';
+    case "COMPLETED":
+    case "SETTLEMENT":
+    case "CAPTURE":
+      return "bg-green-100 text-green-800 border-green-300";
+    case "PENDING":
+      return "bg-yellow-100 text-yellow-800 border-yellow-300";
+    case "FAILED":
+    case "DENY":
+    case "CANCEL":
+    case "EXPIRE":
+      return "bg-red-100 text-red-800 border-red-300";
     default:
-      return 'bg-gray-100 text-gray-800 border-gray-300';
+      return "bg-gray-100 text-gray-800 border-gray-300";
   }
 };
 
@@ -89,13 +122,13 @@ const CashierOrderHistory = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('ALL');
-  const [paymentFilter, setPaymentFilter] = useState('ALL');
-  const [dateFilter, setDateFilter] = useState('ALL');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [paymentFilter, setPaymentFilter] = useState("ALL");
+  const [dateFilter, setDateFilter] = useState("ALL");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isOrderDialogOpen, setIsOrderDialogOpen] = useState(false);
-  
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
@@ -126,7 +159,7 @@ const CashierOrderHistory = () => {
       setFilteredOrders(ordersData);
       calculateStatistics(ordersData);
     } catch (error) {
-      console.error('Error loading orders:', error);
+      console.error("Error loading orders:", error);
       toast.error("Failed to load orders");
     } finally {
       setIsLoading(false);
@@ -136,17 +169,26 @@ const CashierOrderHistory = () => {
   // Calculate comprehensive statistics
   const calculateStatistics = (ordersData: Order[]) => {
     const now = new Date();
-    
+
     // Filter orders by date ranges
-    const todayOrders = ordersData.filter(order => isToday(parseISO(order.orderDate)));
-    const weekOrders = ordersData.filter(order => isThisWeek(parseISO(order.orderDate)));
-    const monthOrders = ordersData.filter(order => isThisMonth(parseISO(order.orderDate)));
-    
+    const todayOrders = ordersData.filter((order) =>
+      isToday(parseISO(order.orderDate))
+    );
+    const weekOrders = ordersData.filter((order) =>
+      isThisWeek(parseISO(order.orderDate))
+    );
+    const monthOrders = ordersData.filter((order) =>
+      isThisMonth(parseISO(order.orderDate))
+    );
+
     // Calculate revenue for each period
     const calculateRevenue = (orders: Order[]) => {
       return orders.reduce((sum, order) => {
         const orderRevenue = order.payments
-          .filter(payment => payment.status === 'COMPLETED' || payment.status === 'SETTLEMENT')
+          .filter(
+            (payment) =>
+              payment.status === "COMPLETED" || payment.status === "SETTLEMENT"
+          )
           .reduce((total, payment) => total + payment.amount, 0);
         return sum + orderRevenue;
       }, 0);
@@ -158,10 +200,17 @@ const CashierOrderHistory = () => {
     const monthRevenue = calculateRevenue(monthOrders);
 
     // Calculate other statistics
-    const pendingOrders = ordersData.filter(order => order.status === 'PENDING').length;
-    const completedOrders = ordersData.filter(order => order.status === 'DELIVERED').length;
-    const cancelledOrders = ordersData.filter(order => order.status === 'CANCELLED').length;
-    const averageOrderValue = ordersData.length > 0 ? totalRevenue / ordersData.length : 0;
+    const pendingOrders = ordersData.filter(
+      (order) => order.status === "PENDING"
+    ).length;
+    const completedOrders = ordersData.filter(
+      (order) => order.status === "DELIVERED"
+    ).length;
+    const cancelledOrders = ordersData.filter(
+      (order) => order.status === "CANCELLED"
+    ).length;
+    const averageOrderValue =
+      ordersData.length > 0 ? totalRevenue / ordersData.length : 0;
 
     setStatistics({
       totalOrders: ordersData.length,
@@ -185,38 +234,43 @@ const CashierOrderHistory = () => {
 
     // Apply search filter
     if (searchTerm) {
-      filtered = filtered.filter(order =>
-        order.orderId.toString().includes(searchTerm) ||
-        order.user?.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        order.user?.email?.toLowerCase().includes(searchTerm.toLowerCase())
+      filtered = filtered.filter(
+        (order) =>
+          order.orderId.toString().includes(searchTerm) ||
+          order.user?.fullName
+            ?.toLowerCase()
+            .includes(searchTerm.toLowerCase()) ||
+          order.user?.email?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
     // Apply status filter
-    if (statusFilter !== 'ALL') {
-      filtered = filtered.filter(order => order.status === statusFilter);
+    if (statusFilter !== "ALL") {
+      filtered = filtered.filter((order) => order.status === statusFilter);
     }
 
     // Apply payment filter
-    if (paymentFilter !== 'ALL') {
-      filtered = filtered.filter(order => {
-        return order.payments.some(payment => payment.status === paymentFilter);
+    if (paymentFilter !== "ALL") {
+      filtered = filtered.filter((order) => {
+        return order.payments.some(
+          (payment) => payment.status === paymentFilter
+        );
       });
     }
 
     // Apply date filter
-    if (dateFilter !== 'ALL') {
+    if (dateFilter !== "ALL") {
       const now = new Date();
-      filtered = filtered.filter(order => {
+      filtered = filtered.filter((order) => {
         const orderDate = parseISO(order.orderDate);
         switch (dateFilter) {
-          case 'TODAY':
+          case "TODAY":
             return isToday(orderDate);
-          case 'YESTERDAY':
+          case "YESTERDAY":
             return isYesterday(orderDate);
-          case 'WEEK':
+          case "WEEK":
             return isThisWeek(orderDate);
-          case 'MONTH':
+          case "MONTH":
             return isThisMonth(orderDate);
           default:
             return true;
@@ -225,12 +279,22 @@ const CashierOrderHistory = () => {
     }
 
     // Sort by date (newest first)
-    filtered.sort((a, b) => new Date(b.orderDate).getTime() - new Date(a.orderDate).getTime());
+    filtered.sort(
+      (a, b) =>
+        new Date(b.orderDate).getTime() - new Date(a.orderDate).getTime()
+    );
 
     setFilteredOrders(filtered);
     setTotalPages(Math.ceil(filtered.length / itemsPerPage));
     setCurrentPage(1);
-  }, [orders, searchTerm, statusFilter, paymentFilter, dateFilter, itemsPerPage]);
+  }, [
+    orders,
+    searchTerm,
+    statusFilter,
+    paymentFilter,
+    dateFilter,
+    itemsPerPage,
+  ]);
 
   // Get paginated orders
   const getPaginatedOrders = () => {
@@ -246,25 +310,31 @@ const CashierOrderHistory = () => {
 
   // Format currency
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR'
+    return new Intl.NumberFormat("id-ID", {
+      style: "currency",
+      currency: "IDR",
     }).format(amount);
   };
 
   // Calculate order total
   const calculateOrderTotal = (order: Order) => {
     return order.orderDetails.reduce((sum, item) => {
-      return sum + (item.quantity * item.unitPrice) - item.discount;
+      return sum + item.quantity * item.unitPrice - item.discount;
     }, 0);
   };
 
-  const StatCard = ({ title, value, icon: Icon, subtitle, trend }: {
+  const StatCard = ({
+    title,
+    value,
+    icon: Icon,
+    subtitle,
+    trend,
+  }: {
     title: string;
     value: string | number;
     icon: any;
     subtitle?: string;
-    trend?: 'up' | 'down' | 'neutral';
+    trend?: "up" | "down" | "neutral";
   }) => (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -273,21 +343,25 @@ const CashierOrderHistory = () => {
       </CardHeader>
       <CardContent>
         <div className="text-2xl font-bold">
-          {typeof value === 'number' && title.includes('Revenue') 
-            ? formatCurrency(value) 
+          {typeof value === "number" && title.includes("Revenue")
+            ? formatCurrency(value)
             : value}
         </div>
         {subtitle && (
-          <p className="text-xs text-muted-foreground mt-1">
-            {subtitle}
-          </p>
+          <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>
         )}
         {trend && (
-          <div className={`flex items-center text-xs mt-1 ${
-            trend === 'up' ? 'text-green-600' : trend === 'down' ? 'text-red-600' : 'text-gray-600'
-          }`}>
-            {trend === 'up' && <IconTrendingUp className="h-3 w-3 mr-1" />}
-            {trend === 'down' && <IconTrendingDown className="h-3 w-3 mr-1" />}
+          <div
+            className={`flex items-center text-xs mt-1 ${
+              trend === "up"
+                ? "text-green-600"
+                : trend === "down"
+                ? "text-red-600"
+                : "text-gray-600"
+            }`}
+          >
+            {trend === "up" && <IconTrendingUp className="h-3 w-3 mr-1" />}
+            {trend === "down" && <IconTrendingDown className="h-3 w-3 mr-1" />}
           </div>
         )}
       </CardContent>
@@ -306,7 +380,9 @@ const CashierOrderHistory = () => {
             </p>
           </div>
           <Button onClick={loadOrders} disabled={isLoading}>
-            <IconRefresh className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+            <IconRefresh
+              className={`mr-2 h-4 w-4 ${isLoading ? "animate-spin" : ""}`}
+            />
             Refresh
           </Button>
         </div>
@@ -482,19 +558,24 @@ const CashierOrderHistory = () => {
                         </TableCell>
                         <TableCell>
                           <div className="space-y-1">
-                            <p className="font-medium">{order.user?.fullName || 'Unknown'}</p>
+                            <p className="font-medium">
+                              {order.user?.fullName || "Unknown"}
+                            </p>
                             <p className="text-sm text-muted-foreground">
-                              {order.user?.email || 'No email'}
+                              {order.user?.email || "No email"}
                             </p>
                           </div>
                         </TableCell>
                         <TableCell>
                           <div className="space-y-1">
                             <p className="font-medium">
-                              {format(parseISO(order.orderDate), 'MMM dd, yyyy')}
+                              {format(
+                                parseISO(order.orderDate),
+                                "MMM dd, yyyy"
+                              )}
                             </p>
                             <p className="text-sm text-muted-foreground">
-                              {format(parseISO(order.orderDate), 'HH:mm')}
+                              {format(parseISO(order.orderDate), "HH:mm")}
                             </p>
                           </div>
                         </TableCell>
@@ -506,10 +587,12 @@ const CashierOrderHistory = () => {
                         <TableCell>
                           <div className="space-y-1">
                             {order.payments.map((payment, index) => (
-                              <Badge 
-                                key={index} 
-                                variant="outline" 
-                                className={getPaymentStatusColor(payment.status)}
+                              <Badge
+                                key={index}
+                                variant="outline"
+                                className={getPaymentStatusColor(
+                                  payment.status
+                                )}
                               >
                                 {payment.type}: {payment.status}
                               </Badge>
@@ -545,47 +628,83 @@ const CashierOrderHistory = () => {
                                   Complete order information and payment details
                                 </DialogDescription>
                               </DialogHeader>
-                              
+
                               <ScrollArea className="max-h-[60vh]">
                                 <div className="space-y-6">
                                   {/* Customer Info */}
                                   <div>
-                                    <h4 className="font-semibold mb-2">Customer Information</h4>
+                                    <h4 className="font-semibold mb-2">
+                                      Customer Information
+                                    </h4>
                                     <div className="bg-muted p-3 rounded-lg space-y-2">
-                                      <p><span className="font-medium">Name:</span> {order.user?.fullName || 'Unknown'}</p>
-                                      <p><span className="font-medium">Email:</span> {order.user?.email || 'No email'}</p>
-                                      <p><span className="font-medium">Order Date:</span> {format(parseISO(order.orderDate), 'PPp')}</p>
+                                      <p>
+                                        <span className="font-medium">
+                                          Name:
+                                        </span>{" "}
+                                        {order.user?.fullName || "Unknown"}
+                                      </p>
+                                      <p>
+                                        <span className="font-medium">
+                                          Email:
+                                        </span>{" "}
+                                        {order.user?.email || "No email"}
+                                      </p>
+                                      <p>
+                                        <span className="font-medium">
+                                          Order Date:
+                                        </span>{" "}
+                                        {format(
+                                          parseISO(order.orderDate),
+                                          "PPp"
+                                        )}
+                                      </p>
                                     </div>
                                   </div>
 
                                   {/* Order Status */}
                                   <div>
-                                    <h4 className="font-semibold mb-2">Order Status</h4>
-                                    <Badge className={getStatusColor(order.status)}>
+                                    <h4 className="font-semibold mb-2">
+                                      Order Status
+                                    </h4>
+                                    <Badge
+                                      className={getStatusColor(order.status)}
+                                    >
                                       {order.status}
                                     </Badge>
                                   </div>
 
                                   {/* Order Items */}
                                   <div>
-                                    <h4 className="font-semibold mb-2">Order Items</h4>
+                                    <h4 className="font-semibold mb-2">
+                                      Order Items
+                                    </h4>
                                     <div className="space-y-3">
                                       {order.orderDetails.map((item, index) => (
-                                        <div key={index} className="flex justify-between items-center p-3 bg-muted rounded-lg">
+                                        <div
+                                          key={index}
+                                          className="flex justify-between items-center p-3 bg-muted rounded-lg"
+                                        >
                                           <div className="flex-1">
-                                            <p className="font-medium">{item.product.name}</p>
+                                            <p className="font-medium">
+                                              {item.product.name}
+                                            </p>
                                             <p className="text-sm text-muted-foreground">
-                                              {formatCurrency(item.unitPrice)} × {item.quantity}
+                                              {formatCurrency(item.unitPrice)} ×{" "}
+                                              {item.quantity}
                                             </p>
                                             {item.discount > 0 && (
                                               <p className="text-sm text-green-600">
-                                                Discount: -{formatCurrency(item.discount)}
+                                                Discount: -
+                                                {formatCurrency(item.discount)}
                                               </p>
                                             )}
                                           </div>
                                           <div className="text-right">
                                             <p className="font-medium">
-                                              {formatCurrency((item.quantity * item.unitPrice) - item.discount)}
+                                              {formatCurrency(
+                                                item.quantity * item.unitPrice -
+                                                  item.discount
+                                              )}
                                             </p>
                                           </div>
                                         </div>
@@ -595,25 +714,43 @@ const CashierOrderHistory = () => {
 
                                   {/* Payment Information */}
                                   <div>
-                                    <h4 className="font-semibold mb-2">Payment Information</h4>
+                                    <h4 className="font-semibold mb-2">
+                                      Payment Information
+                                    </h4>
                                     <div className="space-y-3">
                                       {order.payments.map((payment, index) => (
-                                        <div key={index} className="p-3 bg-muted rounded-lg">
+                                        <div
+                                          key={index}
+                                          className="p-3 bg-muted rounded-lg"
+                                        >
                                           <div className="flex justify-between items-center mb-2">
-                                            <span className="font-medium">{payment.type}</span>
-                                            <Badge className={getPaymentStatusColor(payment.status)}>
+                                            <span className="font-medium">
+                                              {payment.type}
+                                            </span>
+                                            <Badge
+                                              className={getPaymentStatusColor(
+                                                payment.status
+                                              )}
+                                            >
                                               {payment.status}
                                             </Badge>
                                           </div>
                                           <div className="flex justify-between items-center">
                                             <span>Amount:</span>
-                                            <span className="font-medium">{formatCurrency(payment.amount)}</span>
+                                            <span className="font-medium">
+                                              {formatCurrency(payment.amount)}
+                                            </span>
                                           </div>
                                           {payment.paymentDate && (
                                             <div className="flex justify-between items-center mt-1">
-                                              <span className="text-sm text-muted-foreground">Payment Date:</span>
                                               <span className="text-sm text-muted-foreground">
-                                                {format(parseISO(payment.paymentDate), 'PPp')}
+                                                Payment Date:
+                                              </span>
+                                              <span className="text-sm text-muted-foreground">
+                                                {format(
+                                                  parseISO(payment.paymentDate),
+                                                  "PPp"
+                                                )}
                                               </span>
                                             </div>
                                           )}
@@ -626,7 +763,11 @@ const CashierOrderHistory = () => {
                                   <Separator />
                                   <div className="flex justify-between items-center text-lg font-semibold">
                                     <span>Total Order Value:</span>
-                                    <span>{formatCurrency(calculateOrderTotal(order))}</span>
+                                    <span>
+                                      {formatCurrency(
+                                        calculateOrderTotal(order)
+                                      )}
+                                    </span>
                                   </div>
                                 </div>
                               </ScrollArea>
@@ -642,41 +783,55 @@ const CashierOrderHistory = () => {
                 {totalPages > 1 && (
                   <div className="flex items-center justify-between mt-4">
                     <div className="text-sm text-muted-foreground">
-                      Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredOrders.length)} of {filteredOrders.length} orders
+                      Showing {(currentPage - 1) * itemsPerPage + 1} to{" "}
+                      {Math.min(
+                        currentPage * itemsPerPage,
+                        filteredOrders.length
+                      )}{" "}
+                      of {filteredOrders.length} orders
                     </div>
                     <div className="flex items-center space-x-2">
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                        onClick={() =>
+                          setCurrentPage((prev) => Math.max(prev - 1, 1))
+                        }
                         disabled={currentPage === 1}
                       >
                         <IconChevronLeft className="h-4 w-4" />
                         Previous
                       </Button>
-                      
+
                       <div className="flex items-center space-x-1">
-                        {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                          const pageNumber = i + 1;
-                          const isCurrentPage = pageNumber === currentPage;
-                          
-                          return (
-                            <Button
-                              key={pageNumber}
-                              variant={isCurrentPage ? "default" : "outline"}
-                              size="sm"
-                              onClick={() => setCurrentPage(pageNumber)}
-                              className="w-8 h-8 p-0"
-                            >
-                              {pageNumber}
-                            </Button>
-                          );
-                        })}
+                        {Array.from(
+                          { length: Math.min(5, totalPages) },
+                          (_, i) => {
+                            const pageNumber = i + 1;
+                            const isCurrentPage = pageNumber === currentPage;
+
+                            return (
+                              <Button
+                                key={pageNumber}
+                                variant={isCurrentPage ? "default" : "outline"}
+                                size="sm"
+                                onClick={() => setCurrentPage(pageNumber)}
+                                className="w-8 h-8 p-0"
+                              >
+                                {pageNumber}
+                              </Button>
+                            );
+                          }
+                        )}
                         {totalPages > 5 && (
                           <>
                             <span className="text-muted-foreground">...</span>
                             <Button
-                              variant={currentPage === totalPages ? "default" : "outline"}
+                              variant={
+                                currentPage === totalPages
+                                  ? "default"
+                                  : "outline"
+                              }
                               size="sm"
                               onClick={() => setCurrentPage(totalPages)}
                               className="w-8 h-8 p-0"
@@ -690,7 +845,11 @@ const CashierOrderHistory = () => {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                        onClick={() =>
+                          setCurrentPage((prev) =>
+                            Math.min(prev + 1, totalPages)
+                          )
+                        }
                         disabled={currentPage === totalPages}
                       >
                         Next

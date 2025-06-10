@@ -191,6 +191,15 @@ export default function OrderPage() {
     }
   }, [selectedPromotions, togglePromotion]); // Include dependencies
 
+  // Helper for formatting currency to IDR
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0
+    }).format(amount);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-indigo-50">
       <div className="container mx-auto px-4 py-8 max-w-7xl">
@@ -304,7 +313,7 @@ export default function OrderPage() {
                                 {product.name}
                               </h3>
                               <span className="text-purple-600 font-bold text-lg bg-purple-50 px-3 py-1 rounded-lg">
-                                IDR {(product.price / 1000).toFixed(0)}k
+                                {formatCurrency(product.price)}
                               </span>
                             </div>
                             <p className="text-gray-600 mb-4 leading-relaxed">
@@ -398,7 +407,7 @@ export default function OrderPage() {
                             {item.name}
                           </h3>
                           <p className="text-sm text-gray-500 mb-3">
-                            ${item.price.toFixed(2)} each
+                            {formatCurrency(item.price)} each
                           </p>
                           <div className="flex items-center">
                             <button
@@ -426,7 +435,7 @@ export default function OrderPage() {
                         </div>
                         <div className="text-right ml-4">
                           <p className="font-bold text-lg text-purple-600">
-                            ${item.subtotal.toFixed(2)}
+                            {formatCurrency(item.subtotal)}
                           </p>
                           <button
                             onClick={(e) => {
@@ -451,7 +460,7 @@ export default function OrderPage() {
                     <div className="flex justify-between text-gray-600">
                       <span>Subtotal</span>
                       <span className="font-semibold">
-                        ${calculateSubtotal().toFixed(2)}
+                        {formatCurrency(calculateSubtotal())}
                       </span>
                     </div>{" "}
                     {discountAmount > 0 && (
@@ -460,7 +469,7 @@ export default function OrderPage() {
                           <i className="fas fa-tag mr-2"></i>Promotion Discount
                         </span>
                         <span className="font-semibold">
-                          -${discountAmount.toFixed(2)}
+                          -{formatCurrency(discountAmount)}
                         </span>
                       </div>
                     )}
@@ -470,7 +479,7 @@ export default function OrderPage() {
                           Total
                         </span>
                         <span className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
-                          ${calculateTotal().toFixed(2)}
+                          {formatCurrency(calculateTotal())}
                         </span>
                       </div>
                     </div>
@@ -531,26 +540,20 @@ export default function OrderPage() {
                               </p>
                               {promotion.minimumPurchaseAmount > 0 && (
                                 <p className="text-xs text-gray-500 ml-7">
-                                  Minimum purchase: $
-                                  {promotion.minimumPurchaseAmount.toFixed(2)}
+                                  Minimum purchase: {formatCurrency(promotion.minimumPurchaseAmount)}
                                 </p>
                               )}
                             </div>{" "}
                             <div className="text-right ml-4">
                               <span className="text-lg font-bold text-purple-600">
                                 {promotion.promotionType === "FIXED_AMOUNT"
-                                  ? `$${promotion.discountValue.toFixed(2)} OFF`
-                                  : `${
-                                      promotion.discountValue > 1
-                                        ? promotion.discountValue
-                                        : promotion.discountValue * 100
-                                    }% OFF`}
+                                  ? `${formatCurrency(promotion.discountValue)} OFF`
+                                  : `${promotion.discountValue > 1 ? promotion.discountValue : promotion.discountValue * 100}% OFF`}
                               </span>
                               {promotion.promotionType === "PERCENTAGE" &&
                                 promotion.maxDiscountAmount && (
                                   <p className="text-xs text-gray-500">
-                                    Max: $
-                                    {promotion.maxDiscountAmount.toFixed(2)}
+                                    Max: {formatCurrency(promotion.maxDiscountAmount)}
                                   </p>
                                 )}
                             </div>
