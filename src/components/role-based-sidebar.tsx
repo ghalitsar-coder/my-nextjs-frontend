@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { useEffect } from "react";
 import Link from "next/link";
 import {
   IconChartBar,
@@ -194,12 +193,15 @@ const cashierNavigation = [
         url: "/dashboard/cashier/pos/current",
       },
     ],
-  },
-  {
+  },  {
     title: "Order History",
-    url: "/dashboard/cashier/orders",
+    url: "/dashboard/cashier/order-history",
     icon: IconHistory,
     items: [
+      {
+        title: "All Orders",
+        url: "/dashboard/cashier/order-history",
+      },
       {
         title: "Today's Orders",
         url: "/dashboard/cashier/orders/today",

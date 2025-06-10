@@ -19,11 +19,12 @@ import {
   IconSearch,
   IconRefresh,
   IconPrinter,
-  IconCheck
+  IconCheck,
+  IconHistory
 } from "@tabler/icons-react";
 import { toast } from "sonner";
 import { orderApi, Order } from "@/lib/api";
-import { isToday, isSameDay, parseISO } from 'date-fns';
+import { isToday, parseISO } from 'date-fns';
 
 // Status color mapping
 const getStatusColor = (status: string) => {
@@ -581,10 +582,18 @@ const CashierDashboard = () => {
                     </div>
                   </DialogContent>
                 </Dialog>
-                
-                <Button variant="outline" className="w-full" onClick={loadOrders}>
+                  <Button variant="outline" className="w-full" onClick={loadOrders}>
                   <IconRefresh className="w-4 h-4 mr-2" />
                   Refresh Orders
+                </Button>
+                
+                <Button 
+                  variant="outline" 
+                  className="w-full"
+                  onClick={() => window.location.href = '/dashboard/cashier/order-history'}
+                >
+                  <IconHistory className="w-4 h-4 mr-2" />
+                  View Order History
                 </Button>
                 
                 <Button 

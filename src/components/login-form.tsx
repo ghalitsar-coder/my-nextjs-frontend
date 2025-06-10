@@ -35,7 +35,7 @@ export function LoginForm({
       const { error: authError } = await signIn.email({
         email,
         password,
-        callbackURL: "/",
+        // callbackURL: "/",
       } ,
     
     );

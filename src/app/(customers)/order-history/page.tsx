@@ -1,12 +1,20 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useSession } from "@/lib/auth-client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import {
   IconCoffee,
   IconCalendar,
@@ -89,7 +97,6 @@ export default function OrderHistoryPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
-
   const fetchOrders = async () => {
     if (!session?.user?.id) return;
 
@@ -117,7 +124,6 @@ export default function OrderHistoryPage() {
       setLoading(false);
     }
   };
-
   useEffect(() => {
     fetchOrders();
   }, [session?.user?.id]);
@@ -216,10 +222,10 @@ export default function OrderHistoryPage() {
               <IconShoppingBag className="mx-auto h-16 w-16 text-gray-400 mb-4" />
               <h3 className="text-xl font-semibold text-gray-900 mb-2">
                 No Orders Yet
-              </h3>
+              </h3>{" "}
               <p className="text-gray-600 mb-6">
-                You haven't placed any orders yet. Start exploring our coffee
-                menu!
+                You haven&apos;t placed any orders yet. Start exploring our
+                coffee menu!
               </p>
               <Button onClick={() => (window.location.href = "/coffee-list")}>
                 <IconCoffee className="h-4 w-4 mr-2" />
@@ -273,7 +279,6 @@ export default function OrderHistoryPage() {
                               {statusInfo.label}
                             </Badge>
                           </div>
-
                           <div className="space-y-3">
                             <div className="flex items-center justify-between">
                               <span className="text-sm text-gray-600">
@@ -313,17 +318,191 @@ export default function OrderHistoryPage() {
                                 {order.payments[0]?.status || "Pending"}
                               </Badge>
                             </div>
-                          </div>
-
+                          </div>{" "}
                           <div className="mt-4 pt-4 border-t">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="w-full"
-                            >
-                              <IconEye className="h-4 w-4 mr-2" />
-                              View Details
-                            </Button>
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="w-full"
+                                >
+                                  <IconEye className="h-4 w-4 mr-2" />
+                                  View Details
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+                                <DialogHeader>
+                                  <DialogTitle className="flex items-center gap-2">
+                                    <IconReceipt className="h-5 w-5" />
+                                    Order #{order.orderId}
+                                  </DialogTitle>
+                                  <DialogDescription>
+                                    Complete details for your coffee order
+                                  </DialogDescription>
+                                </DialogHeader>
+
+                                {/* Modal Content */}
+                                <div className="space-y-6">
+                                  {/* Order Info */}
+                                  <div className="grid grid-cols-2 gap-4 text-sm">
+                                    <div>
+                                      <span className="text-gray-600">
+                                        Order Date:
+                                      </span>
+                                      <p className="font-medium">
+                                        {formatDate(order.orderDate)}
+                                      </p>
+                                    </div>
+                                    <div>
+                                      <span className="text-gray-600">
+                                        Status:
+                                      </span>
+                                      <div className="mt-1">
+                                        <Badge
+                                          className={`${
+                                            getStatusInfo(order.status).color
+                                          } flex items-center gap-1 w-fit`}
+                                        >
+                                          {React.createElement(
+                                            getStatusInfo(order.status).icon,
+                                            { className: "h-3 w-3" }
+                                          )}
+                                          {getStatusInfo(order.status).label}
+                                        </Badge>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  <Separator />
+
+                                  {/* Items */}
+                                  <div>
+                                    <h4 className="font-semibold mb-3">
+                                      Order Items
+                                    </h4>
+                                    <div className="space-y-3">
+                                      {order.orderDetails.map((item) => (
+                                        <div
+                                          key={item.detailId}
+                                          className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                                        >
+                                          <div className="flex items-center gap-3">
+                                            <div className="bg-orange-100 p-2 rounded-lg">
+                                              <IconCoffee className="h-4 w-4 text-orange-600" />
+                                            </div>
+                                            <div>
+                                              <p className="font-medium">
+                                                {item.product.name}
+                                              </p>
+                                              <p className="text-sm text-gray-600">
+                                                Qty: {item.quantity}
+                                              </p>
+                                            </div>
+                                          </div>
+                                          <div className="text-right">
+                                            <p className="font-medium">
+                                              {formatCurrency(
+                                                item.unitPrice * item.quantity
+                                              )}
+                                            </p>
+                                            <p className="text-sm text-gray-600">
+                                              {formatCurrency(item.unitPrice)}{" "}
+                                              each
+                                            </p>
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+
+                                  <Separator />
+
+                                  {/* Payment Info */}
+                                  <div>
+                                    <h4 className="font-semibold mb-3">
+                                      Payment Information
+                                    </h4>
+                                    {order.payments.length > 0 ? (
+                                      order.payments.map((payment) => (
+                                        <div
+                                          key={payment.paymentId}
+                                          className="p-3 bg-gray-50 rounded-lg"
+                                        >
+                                          <div className="flex items-center justify-between mb-2">
+                                            <span className="font-medium">
+                                              Payment Method:
+                                            </span>
+                                            <Badge variant="outline">
+                                              {payment.type}
+                                            </Badge>
+                                          </div>
+                                          <div className="flex items-center justify-between mb-2">
+                                            <span className="font-medium">
+                                              Status:
+                                            </span>
+                                            <Badge
+                                              variant={
+                                                payment.status === "COMPLETED"
+                                                  ? "default"
+                                                  : "destructive"
+                                              }
+                                            >
+                                              {payment.status}
+                                            </Badge>
+                                          </div>
+                                          <div className="flex items-center justify-between mb-2">
+                                            <span className="font-medium">
+                                              Amount:
+                                            </span>
+                                            <span className="font-bold">
+                                              {formatCurrency(payment.amount)}
+                                            </span>
+                                          </div>
+                                          {payment.paymentDate && (
+                                            <div className="flex items-center justify-between">
+                                              <span className="font-medium">
+                                                Paid At:
+                                              </span>
+                                              <span className="text-sm">
+                                                {formatDate(
+                                                  payment.paymentDate
+                                                )}
+                                              </span>
+                                            </div>
+                                          )}
+                                        </div>
+                                      ))
+                                    ) : (
+                                      <p className="text-gray-600">
+                                        No payment information available.
+                                      </p>
+                                    )}
+                                  </div>
+
+                                  <Separator />
+
+                                  {/* Total */}
+                                  <div className="bg-orange-50 p-4 rounded-lg">
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-lg font-semibold">
+                                        Total Amount:
+                                      </span>
+                                      <span className="text-2xl font-bold text-orange-600">
+                                        {formatCurrency(
+                                          order.orderDetails.reduce(
+                                            (sum, item) =>
+                                              sum +
+                                              item.unitPrice * item.quantity,
+                                            0
+                                          )
+                                        )}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </DialogContent>
+                            </Dialog>
                           </div>
                         </CardContent>
                       </Card>
