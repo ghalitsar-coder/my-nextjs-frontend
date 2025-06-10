@@ -19,34 +19,33 @@ import {
   IconTruck,
   IconX,
 } from "@tabler/icons-react";
-import { format, isValid, parseISO } from "date-fns";
+import { format } from "date-fns";
 
 interface OrderItem {
-  detailId: number;
-  product: {
-    productId: number;
-    name: string;
-    price: number;
-  };
+  id: number;
+  productId: number;
+  productName: string;
   quantity: number;
-  unitPrice: number;
-  discount: number;
+  price: number;
+  totalPrice: number;
 }
 
 interface Payment {
-  paymentId: number;
-  type: string;
-  amount: number;
+  id: number;
+  method: string;
   status: string;
-  paymentDate?: string;
+  amount: number;
+  paidAt?: string;
 }
 
 interface Order {
-  orderId: number;
-  userId: string; // Updated to match API response
+  id: number;
+  userId: number;
   status: string;
-  orderDate: string; // Changed from createdAt
-  orderDetails: OrderItem[]; // Changed from items
+  totalAmount: number;
+  createdAt: string;
+  updatedAt: string;
+  items: OrderItem[];
   payments: Payment[];
 }
 
@@ -108,7 +107,6 @@ export default function OrderHistoryPage() {
       }
 
       const data = await response.json();
-      console.log("Fetched orders:", data); // Keep for debugging
       setOrders(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to fetch orders");
@@ -133,21 +131,6 @@ export default function OrderHistoryPage() {
       style: "currency",
       currency: "IDR",
     }).format(amount);
-  };
-
-  // Helper function to safely format dates
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return "Unknown Date";
-    try {
-      // Remove microseconds if present
-      const cleanedDateString = dateString.replace(/(\.\d{3})\d+/, "$1");
-      const date = parseISO(cleanedDateString);
-      if (!isValid(date)) return "Invalid Date";
-      return format(date, "dd MMM yyyy, HH:mm");
-    } catch {
-      console.error("Failed to parse date:", dateString);
-      return "Invalid Date";
-    }
   };
 
   if (!session) {
@@ -242,9 +225,9 @@ export default function OrderHistoryPage() {
 
                     return (
                       <Card
-                        key={order.orderId}
+                        key={order.id}
                         className={`cursor-pointer transition-all hover:shadow-md ${
-                          selectedOrder?.orderId === order.orderId
+                          selectedOrder?.id === order.id
                             ? "ring-2 ring-orange-500 border-orange-500"
                             : ""
                         }`}
@@ -258,11 +241,14 @@ export default function OrderHistoryPage() {
                               </div>
                               <div>
                                 <h3 className="font-semibold text-gray-900">
-                                  Order #{order.orderId}
+                                  Order #{order.id}
                                 </h3>
                                 <div className="flex items-center gap-2 text-sm text-gray-600">
                                   <IconCalendar className="h-4 w-4" />
-                                  {formatDate(order.orderDate)}
+                                  {format(
+                                    new Date(order.createdAt),
+                                    "dd MMM yyyy, HH:mm"
+                                  )}
                                 </div>
                               </div>
                             </div>
@@ -280,7 +266,7 @@ export default function OrderHistoryPage() {
                                 Items:
                               </span>
                               <span className="text-sm font-medium">
-                                {order.orderDetails.length} item(s)
+                                {order.items.length} item(s)
                               </span>
                             </div>
 
@@ -289,13 +275,7 @@ export default function OrderHistoryPage() {
                                 Total Amount:
                               </span>
                               <span className="text-lg font-bold text-gray-900">
-                                {formatCurrency(
-                                  order.orderDetails.reduce(
-                                    (sum, item) =>
-                                      sum + item.unitPrice * item.quantity,
-                                    0
-                                  )
-                                )}
+                                {formatCurrency(order.totalAmount)}
                               </span>
                             </div>
 
@@ -344,7 +324,7 @@ export default function OrderHistoryPage() {
                     <div className="flex items-center justify-between">
                       <CardTitle className="flex items-center gap-2">
                         <IconReceipt className="h-5 w-5" />
-                        Order #{selectedOrder.orderId}
+                        Order #{selectedOrder.id}
                       </CardTitle>
                       <Badge
                         className={`${
@@ -365,7 +345,19 @@ export default function OrderHistoryPage() {
                       <div>
                         <span className="text-gray-600">Order Date:</span>
                         <p className="font-medium">
-                          {formatDate(selectedOrder.orderDate)}
+                          {format(
+                            new Date(selectedOrder.createdAt),
+                            "dd MMM yyyy, HH:mm"
+                          )}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">Last Updated:</span>
+                        <p className="font-medium">
+                          {format(
+                            new Date(selectedOrder.updatedAt),
+                            "dd MMM yyyy, HH:mm"
+                          )}
                         </p>
                       </div>
                     </div>
@@ -376,9 +368,9 @@ export default function OrderHistoryPage() {
                     <div>
                       <h4 className="font-semibold mb-3">Order Items</h4>
                       <div className="space-y-3">
-                        {selectedOrder.orderDetails.map((item) => (
+                        {selectedOrder.items.map((item) => (
                           <div
-                            key={item.detailId}
+                            key={item.id}
                             className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
                           >
                             <div className="flex items-center gap-3">
@@ -387,7 +379,7 @@ export default function OrderHistoryPage() {
                               </div>
                               <div>
                                 <p className="font-medium">
-                                  {item.product.name}
+                                  {item.productName}
                                 </p>
                                 <p className="text-sm text-gray-600">
                                   Qty: {item.quantity}
@@ -396,10 +388,10 @@ export default function OrderHistoryPage() {
                             </div>
                             <div className="text-right">
                               <p className="font-medium">
-                                {formatCurrency(item.unitPrice * item.quantity)}
+                                {formatCurrency(item.totalPrice)}
                               </p>
                               <p className="text-sm text-gray-600">
-                                {formatCurrency(item.unitPrice)} each
+                                {formatCurrency(item.price)} each
                               </p>
                             </div>
                           </div>
@@ -414,51 +406,46 @@ export default function OrderHistoryPage() {
                       <h4 className="font-semibold mb-3">
                         Payment Information
                       </h4>
-                      {selectedOrder.payments.length > 0 ? (
-                        selectedOrder.payments.map((payment) => (
-                          <div
-                            key={payment.paymentId}
-                            className="p-3 bg-gray-50 rounded-lg"
-                          >
-                            <div className="flex items-center justify-between mb-2">
-                              <span className="font-medium">
-                                Payment Method:
-                              </span>
-                              <Badge variant="outline">{payment.type}</Badge>
-                            </div>
-                            <div className="flex items-center justify-between mb-2">
-                              <span className="font-medium">Status:</span>
-                              <Badge
-                                variant={
-                                  payment.status === "COMPLETED"
-                                    ? "default"
-                                    : "destructive"
-                                }
-                              >
-                                {payment.status}
-                              </Badge>
-                            </div>
-                            <div className="flex items-center justify-between mb-2">
-                              <span className="font-medium">Amount:</span>
-                              <span className="font-bold">
-                                {formatCurrency(payment.amount)}
-                              </span>
-                            </div>
-                            {payment.paymentDate && (
-                              <div className="flex items-center justify-between">
-                                <span className="font-medium">Paid At:</span>
-                                <span className="text-sm">
-                                  {formatDate(payment.paymentDate)}
-                                </span>
-                              </div>
-                            )}
+                      {selectedOrder.payments.map((payment) => (
+                        <div
+                          key={payment.id}
+                          className="p-3 bg-gray-50 rounded-lg"
+                        >
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="font-medium">Payment Method:</span>
+                            <Badge variant="outline">{payment.method}</Badge>
                           </div>
-                        ))
-                      ) : (
-                        <p className="text-gray-600">
-                          No payment information available.
-                        </p>
-                      )}
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="font-medium">Status:</span>
+                            <Badge
+                              variant={
+                                payment.status === "COMPLETED"
+                                  ? "default"
+                                  : "destructive"
+                              }
+                            >
+                              {payment.status}
+                            </Badge>
+                          </div>
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="font-medium">Amount:</span>
+                            <span className="font-bold">
+                              {formatCurrency(payment.amount)}
+                            </span>
+                          </div>
+                          {payment.paidAt && (
+                            <div className="flex items-center justify-between">
+                              <span className="font-medium">Paid At:</span>
+                              <span className="text-sm">
+                                {format(
+                                  new Date(payment.paidAt),
+                                  "dd MMM yyyy, HH:mm"
+                                )}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      ))}
                     </div>
 
                     <Separator />
@@ -470,13 +457,7 @@ export default function OrderHistoryPage() {
                           Total Amount:
                         </span>
                         <span className="text-2xl font-bold text-orange-600">
-                          {formatCurrency(
-                            selectedOrder.orderDetails.reduce(
-                              (sum, item) =>
-                                sum + item.unitPrice * item.quantity,
-                              0
-                            )
-                          )}
+                          {formatCurrency(selectedOrder.totalAmount)}
                         </span>
                       </div>
                     </div>
