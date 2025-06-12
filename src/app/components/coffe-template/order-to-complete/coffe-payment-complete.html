@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coffee Haven - Order Confirmation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .confirmation-animation {
+            animation: bounce 1s infinite alternate;
+        }
+        @keyframes bounce {
+            from { transform: translateY(0); }
+            to { transform: translateY(-10px); }
+        }
+        .order-item:hover {
+            transform: translateX(5px);
+            transition: transform 0.3s ease;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="container mx-auto px-4 py-8 max-w-4xl">
+        <!-- Header -->
+        <header class="flex justify-between items-center mb-8">
+            <div class="flex items-center">
+                <i class="fas fa-mug-hot text-3xl text-purple-600 mr-3"></i>
+                <h1 class="text-2xl font-bold text-gray-800">Coffee Haven</h1>
+            </div>
+            <div class="text-sm text-gray-500">
+                <span class="hidden md:inline">Order Confirmation</span>
+                <i class="fas fa-check-circle ml-2 text-green-500"></i>
+            </div>
+        </header>
+
+        <!-- Progress Steps -->
+        <div class="flex justify-between items-center mb-12 relative">
+            <div class="flex-1 h-1 bg-gray-200 absolute top-1/2 left-0 -translate-y-1/2 z-0"></div>
+            <div class="flex flex-col items-center relative z-10">
+                <div class="w-8 h-8 rounded-full bg-purple-600 text-white flex items-center justify-center mb-2">
+                    <i class="fas fa-check"></i>
+                </div>
+                <span class="text-sm font-medium text-purple-600">Order</span>
+            </div>
+            <div class="flex flex-col items-center relative z-10">
+                <div class="w-8 h-8 rounded-full bg-purple-600 text-white flex items-center justify-center mb-2">
+                    <i class="fas fa-check"></i>
+                </div>
+                <span class="text-sm font-medium text-purple-600">Payment</span>
+            </div>
+            <div class="flex flex-col items-center relative z-10">
+                <div class="w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center mb-2">
+                    <span>3</span>
+                </div>
+                <span class="text-sm font-medium text-green-500">Complete</span>
+            </div>
+        </div>
+
+        <!-- Confirmation Card -->
+        <div class="bg-white rounded-lg shadow-md p-8 text-center mb-8">
+            <div class="confirmation-animation text-green-500 text-6xl mb-4">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <h2 class="text-2xl font-bold text-gray-800 mb-2">Order Confirmed!</h2>
+            <p class="text-gray-600 mb-6">Thank you for your order. We're preparing your coffee with love.</p>
+            
+            <div class="bg-purple-50 rounded-lg p-4 inline-block mb-6">
+                <p class="text-sm text-gray-600">Order Number</p>
+                <p class="text-xl font-bold text-purple-600">#COFFEE-2023-5874</p>
+            </div>
+            
+            <div class="flex justify-center space-x-4 mb-8">
+                <button class="bg-purple-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-purple-700 transition duration-200">
+                    <i class="fas fa-receipt mr-2"></i> View Receipt
+                </button>
+                <button class="bg-white border border-purple-600 text-purple-600 px-6 py-2 rounded-lg font-medium hover:bg-purple-50 transition duration-200">
+                    <i class="fas fa-home mr-2"></i> Back to Home
+                </button>
+            </div>
+        </div>
+
+        <!-- Order Details -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 class="text-xl font-bold text-gray-800 mb-6 flex items-center">
+                <i class="fas fa-info-circle mr-2 text-purple-600"></i>
+                Order Details
+            </h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Customer Info -->
+                <div>
+                    <h3 class="font-medium text-gray-800 mb-3 flex items-center">
+                        <i class="fas fa-user mr-2 text-purple-600"></i>
+                        Customer Information
+                    </h3>
+                    <div class="space-y-2 text-sm text-gray-600">
+                        <p><span class="font-medium">Name:</span> John Doe</p>
+                        <p><span class="font-medium">Email:</span> john.doe@example.com</p>
+                        <p><span class="font-medium">Phone:</span> (555) 123-4567</p>
+                    </div>
+                </div>
+                
+                <!-- Pickup Info -->
+                <div>
+                    <h3 class="font-medium text-gray-800 mb-3 flex items-center">
+                        <i class="fas fa-store mr-2 text-purple-600"></i>
+                        Pickup Information
+                    </h3>
+                    <div class="space-y-2 text-sm text-gray-600">
+                        <p><span class="font-medium">Location:</span> Coffee Haven Downtown</p>
+                        <p><span class="font-medium">Address:</span> 123 Main Street, Suite 100</p>
+                        <p><span class="font-medium">Time:</span> Today at 3:45 PM</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Order Items -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-xl font-bold text-gray-800 mb-6 flex items-center">
+                <i class="fas fa-coffee mr-2 text-purple-600"></i>
+                Your Order
+            </h2>
+            
+            <div class="space-y-4 mb-6">
+                <!-- Item 1 -->
+                <div class="order-item flex justify-between items-start border-b pb-4 transition duration-200">
+                    <div class="flex items-start">
+                        <img src="https://images.unsplash.com/photo-1517701550928-30cf4ba1dba5?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=200&q=80" 
+                             alt="Cappuccino" class="w-16 h-16 rounded-lg object-cover mr-4">
+                        <div>
+                            <h3 class="font-medium text-gray-800">Cappuccino</h3>
+                            <p class="text-sm text-gray-500">Medium, Hot</p>
+                            <div class="mt-1">
+                                <span class="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded">Extra Shot</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <p class="font-medium text-gray-800">$4.50</p>
+                        <p class="text-sm text-gray-500">Qty: 1</p>
+                    </div>
+                </div>
+                
+                <!-- Item 2 -->
+                <div class="order-item flex justify-between items-start border-b pb-4 transition duration-200">
+                    <div class="flex items-start">
+                        <img src="https://images.unsplash.com/photo-1568649929103-28ffbefaca1e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=200&q=80" 
+                             alt="Latte" class="w-16 h-16 rounded-lg object-cover mr-4">
+                        <div>
+                            <h3 class="font-medium text-gray-800">Latte</h3>
+                            <p class="text-sm text-gray-500">Large, Iced</p>
+                            <div class="mt-1">
+                                <span class="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded">Vanilla Syrup</span>
+                                <span class="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded ml-1">Almond Milk</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <p class="font-medium text-gray-800">$5.75</p>
+                        <p class="text-sm text-gray-500">Qty: 2</p>
+                    </div>
+                </div>
+                
+                <!-- Item 3 -->
+                <div class="order-item flex justify-between items-start transition duration-200">
+                    <div class="flex items-start">
+                        <img src="https://images.unsplash.com/photo-1551024506-0bccd828d307?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=200&q=80" 
+                             alt="Croissant" class="w-16 h-16 rounded-lg object-cover mr-4">
+                        <div>
+                            <h3 class="font-medium text-gray-800">Butter Croissant</h3>
+                            <p class="text-sm text-gray-500">Regular</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <p class="font-medium text-gray-800">$3.25</p>
+                        <p class="text-sm text-gray-500">Qty: 1</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Order Summary -->
+            <div class="bg-gray-50 rounded-lg p-4">
+                <div class="space-y-2">
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Subtotal</span>
+                        <span class="font-medium">$19.25</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Tax (8%)</span>
+                        <span class="font-medium">$1.54</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Service Fee</span>
+                        <span class="font-medium">$0.50</span>
+                    </div>
+                    <div class="flex justify-between border-t pt-2">
+                        <span class="text-gray-600">Discount</span>
+                        <span class="font-medium text-green-600">-$2.00</span>
+                    </div>
+                    <div class="flex justify-between pt-2 font-bold text-lg">
+                        <span class="text-gray-800">Total Paid</span>
+                        <span class="text-purple-600">$19.29</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Payment Method -->
+            <div class="mt-6 bg-gray-50 rounded-lg p-4">
+                <h3 class="font-medium text-gray-800 mb-2 flex items-center">
+                    <i class="fas fa-credit-card mr-2 text-purple-600"></i>
+                    Payment Method
+                </h3>
+                <div class="flex items-center">
+                    <i class="fab fa-cc-visa text-2xl text-blue-500 mr-3"></i>
+                    <div>
+                        <p class="text-gray-800">Visa ending in 4242</p>
+                        <p class="text-sm text-gray-500">Payment completed at 3:12 PM</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Order Status -->
+        <div class="bg-white rounded-lg shadow-md p-6 mt-8">
+            <h2 class="text-xl font-bold text-gray-800 mb-6 flex items-center">
+                <i class="fas fa-truck mr-2 text-purple-600"></i>
+                Order Status
+            </h2>
+            
+            <div class="space-y-6">
+                <!-- Status Timeline -->
+                <div class="relative">
+                    <!-- Timeline line -->
+                    <div class="absolute left-4 top-0 h-full w-0.5 bg-gray-200"></div>
+                    
+                    <!-- Timeline items -->
+                    <div class="relative pl-10 pb-6">
+                        <div class="absolute left-0 top-0 w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center">
+                            <i class="fas fa-check"></i>
+                        </div>
+                        <div class="ml-2">
+                            <h3 class="font-medium text-gray-800">Order Received</h3>
+                            <p class="text-sm text-gray-500">3:12 PM</p>
+                        </div>
+                    </div>
+                    
+                    <div class="relative pl-10 pb-6">
+                        <div class="absolute left-0 top-0 w-8 h-8 rounded-full bg-purple-600 text-white flex items-center justify-center">
+                            <i class="fas fa-coffee"></i>
+                        </div>
+                        <div class="ml-2">
+                            <h3 class="font-medium text-gray-800">Preparing Your Order</h3>
+                            <p class="text-sm text-gray-500">Estimated completion: 3:45 PM</p>
+                        </div>
+                    </div>
+                    
+                    <div class="relative pl-10">
+                        <div class="absolute left-0 top-0 w-8 h-8 rounded-full bg-gray-200 text-gray-500 flex items-center justify-center">
+                            <i class="fas fa-store"></i>
+                        </div>
+                        <div class="ml-2">
+                            <h3 class="font-medium text-gray-500">Ready for Pickup</h3>
+                            <p class="text-sm text-gray-400">We'll notify you when ready</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Notifications -->
+                <div class="bg-purple-50 rounded-lg p-4">
+                    <div class="flex items-start">
+                        <i class="fas fa-bell text-purple-600 mt-1 mr-3"></i>
+                        <div>
+                            <h3 class="font-medium text-gray-800 mb-1">Get Notified</h3>
+                            <p class="text-sm text-gray-600">We'll send you updates about your order status via SMS and email.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer CTA -->
+        <div class="mt-8 text-center">
+            <p class="text-gray-600 mb-4">Need help with your order?</p>
+            <button class="bg-white border border-purple-600 text-purple-600 px-6 py-2 rounded-lg font-medium hover:bg-purple-50 transition duration-200">
+                <i class="fas fa-headset mr-2"></i> Contact Support
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // In a real application, you would fetch order details from your database
+        document.addEventListener('DOMContentLoaded', function() {
+            // Simulate order status updates
+            setTimeout(function() {
+                // This would be replaced with real-time updates from your backend
+                console.log("Order status could be updated here via WebSocket or polling");
+            }, 5000);
+            
+            // Back to home button functionality
+            document.querySelectorAll('button').forEach(button => {
+                if (button.textContent.includes('Back to Home')) {
+                    button.addEventListener('click', function() {
+                        // In a real app, this would redirect to the home page
+                        alert('Redirecting to home page...');
+                    });
+                }
+            });
+            
+            // View receipt button functionality
+            document.querySelectorAll('button').forEach(button => {
+                if (button.textContent.includes('View Receipt')) {
+                    button.addEventListener('click', function() {
+                        // In a real app, this would open a receipt modal or PDF
+                        alert('Opening receipt...');
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>

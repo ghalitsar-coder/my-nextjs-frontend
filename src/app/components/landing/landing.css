@@ -1,0 +1,123 @@
+/* Landing Page Styles */
+@import url("https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Poppins:wght@300;400;500;600;700&display=swap");
+
+.landing-page {
+  font-family: "Poppins", sans-serif;
+  scroll-behavior: smooth;
+  background-color: #f9f5f0;
+}
+
+.display-font {
+  font-family: "Playfair Display", serif;
+}
+
+.hero-section {
+  background: linear-gradient(rgba(30, 30, 30, 0.4), rgba(30, 30, 30, 0.4)),
+    url("https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80");
+  background-size: cover;
+  background-position: center;
+  height: 100vh;
+  min-height: 800px;
+}
+
+.nav-scrolled {
+  background-color: rgba(34, 34, 34, 0.95);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+}
+
+.coffee-card {
+  transition: all 0.3s ease;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.coffee-card:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+.gradient-text {
+  background: linear-gradient(90deg, #c08450 0%, #e7c8a0 50%, #c08450 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  background-size: 200% auto;
+}
+
+.gradient-bg {
+  background: linear-gradient(90deg, #c08450 0%, #e7c8a0 50%, #c08450 100%);
+  background-size: 200% auto;
+}
+
+.btn-cta {
+  background: linear-gradient(90deg, #c08450 0%, #e7c8a0 50%, #c08450 100%);
+  background-size: 200% auto;
+  transition: all 0.3s ease;
+}
+
+.btn-cta:hover {
+  background-position: right center;
+  transform: translateY(-2px);
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+@keyframes float {
+  0% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+  100% {
+    transform: translateY(0px);
+  }
+}
+
+.animate-gradient {
+  animation: gradient 8s ease infinite;
+}
+
+@keyframes gradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.menu-item {
+  transition: all 0.3s ease;
+}
+
+.menu-item:hover {
+  transform: scale(1.03);
+}
+
+.stats-card {
+  transition: all 0.3s ease;
+}
+
+.stats-card:hover {
+  transform: translateY(-5px);
+}
+
+/* Active menu button style */
+.active-menu {
+  background-color: white;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  color: #111827;
+}
+
+/* Smooth scrolling for anchor links */
+html {
+  scroll-behavior: smooth;
+}

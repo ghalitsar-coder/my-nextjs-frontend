@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Promotions</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#4F46E5',
+                        secondary: '#10B981',
+                        dark: '#1F2937',
+                        light: '#F9FAFB'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .sidebar {
+            transition: all 0.3s ease;
+        }
+        .promotion-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+        .status-badge {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+        }
+        .active-status {
+            background-color: #DCFCE7;
+            color: #166534;
+        }
+        .inactive-status {
+            background-color: #FEE2E2;
+            color: #991B1B;
+        }
+        .upcoming-status {
+            background-color: #FEF3C7;
+            color: #92400E;
+        }
+        .chart-container {
+            height: 250px;
+        }
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+                position: fixed;
+                z-index: 50;
+                height: 100vh;
+            }
+            .sidebar.active {
+                transform: translateX(0);
+            }
+            .overlay {
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background-color: rgba(0,0,0,0.5);
+                z-index: 40;
+            }
+            .overlay.active {
+                display: block;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex h-screen">
+    <!-- Mobile menu button -->
+    <div class="md:hidden fixed top-4 left-4 z-30">
+        <button id="mobileMenuButton" class="p-2 rounded-lg bg-white shadow text-gray-600">
+            <i class="fas fa-bars text-xl"></i>
+        </button>
+    </div>
+
+    <!-- Overlay for mobile sidebar -->
+    <div id="overlay" class="overlay"></div>
+
+    <!-- Sidebar -->
+    <div id="sidebar" class="sidebar bg-white w-64 flex flex-col border-r border-gray-200">
+        <!-- Logo -->
+        <div class="p-5 border-b border-gray-200">
+            <div class="flex items-center space-x-3">
+                <div class="bg-primary w-10 h-10 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-tag text-white text-xl"></i>
+                </div>
+                <h1 class="text-xl font-bold text-gray-800">PromoManager</h1>
+            </div>
+        </div>
+
+        <!-- Navigation -->
+        <div class="flex-1 py-4">
+            <nav>
+                <a href="#" class="block py-3 px-6 bg-primary/10 border-l-4 border-primary text-primary font-medium">
+                    <i class="fas fa-fire mr-3"></i> Promotions
+                </a>
+                <a href="#" class="block py-3 px-6 text-gray-600 hover:bg-gray-50">
+                    <i class="fas fa-shopping-cart mr-3"></i> Orders
+                </a>
+                <a href="#" class="block py-3 px-6 text-gray-600 hover:bg-gray-50">
+                    <i class="fas fa-box mr-3"></i> Products
+                </a>
+                <a href="#" class="block py-3 px-6 text-gray-600 hover:bg-gray-50">
+                    <i class="fas fa-users mr-3"></i> Customers
+                </a>
+                <a href="#" class="block py-3 px-6 text-gray-600 hover:bg-gray-50">
+                    <i class="fas fa-chart-bar mr-3"></i> Analytics
+                </a>
+                <a href="#" class="block py-3 px-6 text-gray-600 hover:bg-gray-50">
+                    <i class="fas fa-cog mr-3"></i> Settings
+                </a>
+            </nav>
+        </div>
+
+        <!-- User Profile -->
+        <div class="p-4 border-t border-gray-200">
+            <div class="flex items-center">
+                <img src="https://ui-avatars.com/api/?name=Admin+User&background=4F46E5&color=fff" alt="Admin User" class="w-10 h-10 rounded-full">
+                <div class="ml-3">
+                    <p class="text-sm font-medium text-gray-800">Admin User</p>
+                    <p class="text-xs text-gray-500">Administrator</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="flex-1 flex flex-col overflow-hidden">
+        <!-- Header -->
+        <header class="bg-white border-b border-gray-200 py-4 px-6 flex items-center justify-between">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-800">Promotions Management</h1>
+                <p class="text-gray-600">Manage all promotional campaigns and discounts</p>
+            </div>
+            <div class="flex items-center space-x-4">
+                <button class="p-2 text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-bell text-xl"></i>
+                </button>
+                <div class="relative">
+                    <input type="text" placeholder="Search promotions..." class="pl-10 pr-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                    <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                </div>
+            </div>
+        </header>
+
+        <!-- Stats Section -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 p-6">
+            <div class="bg-white rounded-xl shadow p-6">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-lg bg-indigo-100 text-primary">
+                        <i class="fas fa-fire text-2xl"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-gray-500">Total Promotions</p>
+                        <h3 class="text-2xl font-bold">24</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white rounded-xl shadow p-6">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-lg bg-green-100 text-secondary">
+                        <i class="fas fa-check-circle text-2xl"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-gray-500">Active Promotions</p>
+                        <h3 class="text-2xl font-bold">14</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white rounded-xl shadow p-6">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-lg bg-yellow-100 text-yellow-600">
+                        <i class="fas fa-clock text-2xl"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-gray-500">Upcoming Promotions</p>
+                        <h3 class="text-2xl font-bold">5</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white rounded-xl shadow p-6">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-lg bg-red-100 text-red-600">
+                        <i class="fas fa-chart-line text-2xl"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-gray-500">Avg. Discount</p>
+                        <h3 class="text-2xl font-bold">25%</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content Area -->
+        <div class="flex-1 overflow-y-auto p-6">
+            <div class="flex flex-col lg:flex-row gap-6">
+                <!-- Left Column - Table -->
+                <div class="w-full lg:w-7/12">
+                    <div class="bg-white rounded-xl shadow mb-6">
+                        <div class="p-5 border-b border-gray-200 flex flex-col sm:flex-row justify-between items-start sm:items-center">
+                            <h2 class="text-lg font-semibold text-gray-800">All Promotions</h2>
+                            <div class="mt-3 sm:mt-0 flex space-x-3">
+                                <button class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">
+                                    <i class="fas fa-filter mr-2"></i>Filter
+                                </button>
+                                <button id="addPromotionBtn" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-indigo-700 flex items-center">
+                                    <i class="fas fa-plus mr-2"></i> Add Promotion
+                                </button>
+                            </div>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Discount</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Period</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200">
+                                    <tr class="hover:bg-gray-50">
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="font-medium text-gray-900">Summer Sale</div>
+                                            <div class="text-sm text-gray-500">20% off all products</div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="px-2 py-1 bg-green-100 text-green-800 rounded-full text-sm">20%</span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                            <div>Jun 1 - Aug 31</div>
+                                            <div class="text-xs text-gray-400">12 days left</div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="status-badge active-status">Active</span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm">
+                                            <button class="text-indigo-600 hover:text-indigo-900 mr-3">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button class="text-red-600 hover:text-red-900">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    <tr class="hover:bg-gray-50">
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="font-medium text-gray-900">New Customer Discount</div>
+                                            <div class="text-sm text-gray-500">$10 off first order</div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">$10</span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                            <div>Jan 1 - Dec 31</div>
+                                            <div class="text-xs text-gray-400">Ongoing</div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="status-badge active-status">Active</span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm">
+                                            <button class="text-indigo-600 hover:text-indigo-900 mr-3">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button class="text-red-600 hover:text-red-900">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    <tr class="hover:bg-gray-50">
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="font-medium text-gray-900">Black Friday</div>
+                                            <div class="text-sm text-gray-500">Up to 50% off</div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="px-2 py-1 bg-purple-100 text-purple-800 rounded-full text-sm">50%</span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                            <div>Nov 25 - Nov 27</div>
+                                            <div class="text-xs text-gray-400">Starts in 3 months</div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="status-badge upcoming-status">Upcoming</span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm">
+                                            <button class="text-indigo-600 hover:text-indigo-900 mr-3">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button class="text-red-600 hover:text-red-900">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    <tr class="hover:bg-gray-50">
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="font-medium text-gray-900">Holiday Special</div>
+                                            <div class="text-sm text-gray-500">Free shipping on orders over $50</div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm">Free Ship</span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                            <div>Dec 1 - Dec 31</div>
+                                            <div class="text-xs text-gray-400">Starts in 4 months</div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="status-badge upcoming-status">Upcoming</span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm">
+                                            <button class="text-indigo-600 hover:text-indigo-900 mr-3">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button class="text-red-600 hover:text-red-900">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    <tr class="hover:bg-gray-50">
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="font-medium text-gray-900">Spring Clearance</div>
+                                            <div class="text-sm text-gray-500">30% off selected items</div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="px-2 py-1 bg-pink-100 text-pink-800 rounded-full text-sm">30%</span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                            <div>Mar 1 - Apr 15</div>
+                                            <div class="text-xs text-gray-400">Ended 3 months ago</div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="status-badge inactive-status">Inactive</span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm">
+                                            <button class="text-indigo-600 hover:text-indigo-900 mr-3">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button class="text-red-600 hover:text-red-900">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="px-5 py-4 border-t border-gray-200 flex items-center justify-between">
+                            <div class="text-sm text-gray-700">
+                                Showing <span class="font-medium">1</span> to <span class="font-medium">5</span> of <span class="font-medium">24</span> results
+                            </div>
+                            <div class="flex space-x-2">
+                                <button class="px-3 py-1 rounded border border-gray-300 text-gray-600 hover:bg-gray-100">
+                                    Previous
+                                </button>
+                                <button class="px-3 py-1 rounded border border-gray-300 bg-gray-100 text-gray-800 font-medium">
+                                    1
+                                </button>
+                                <button class="px-3 py-1 rounded border border-gray-300 text-gray-600 hover:bg-gray-100">
+                                    2
+                                </button>
+                                <button class="px-3 py-1 rounded border border-gray-300 text-gray-600 hover:bg-gray-100">
+                                    3
+                                </button>
+                                <button class="px-3 py-1 rounded border border-gray-300 text-gray-600 hover:bg-gray-100">
+                                    Next
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column - Charts and Details -->
+                <div class="w-full lg:w-5/12">
+                    <!-- Promotion Usage Chart -->
+                    <div class="bg-white rounded-xl shadow p-6 mb-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-lg font-semibold text-gray-800">Promotion Usage</h2>
+                            <div class="relative">
+                                <select class="appearance-none bg-gray-100 border-0 py-1 pl-3 pr-8 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:outline-none">
+                                    <option>Last 7 days</option>
+                                    <option>Last 30 days</option>
+                                    <option>Last 90 days</option>
+                                </select>
+                                <i class="fas fa-chevron-down absolute right-3 top-2 text-gray-400 pointer-events-none"></i>
+                            </div>
+                        </div>
+                        <div class="chart-container flex items-end h-64 mt-6 space-x-2">
+                            <div class="flex-1 flex flex-col items-center">
+                                <div class="w-full bg-gray-200 rounded-t-lg" style="height: 40%">
+                                    <div class="bg-primary h-full rounded-t-lg"></div>
+                                </div>
+                                <span class="text-xs mt-2 text-gray-500">Mon</span>
+                            </div>
+                            <div class="flex-1 flex flex-col items-center">
+                                <div class="w-full bg-gray-200 rounded-t-lg" style="height: 60%">
+                                    <div class="bg-primary h-full rounded-t-lg"></div>
+                                </div>
+                                <span class="text-xs mt-2 text-gray-500">Tue</span>
+                            </div>
+                            <div class="flex-1 flex flex-col items-center">
+                                <div class="w-full bg-gray-200 rounded-t-lg" style="height: 80%">
+                                    <div class="bg-primary h-full rounded-t-lg"></div>
+                                </div>
+                                <span class="text-xs mt-2 text-gray-500">Wed</span>
+                            </div>
+                            <div class="flex-1 flex flex-col items-center">
+                                <div class="w-full bg-gray-200 rounded-t-lg" style="height: 100%">
+                                    <div class="bg-primary h-full rounded-t-lg"></div>
+                                </div>
+                                <span class="text-xs mt-2 text-gray-500">Thu</span>
+                            </div>
+                            <div class="flex-1 flex flex-col items-center">
+                                <div class="w-full bg-gray-200 rounded-t-lg" style="height: 70%">
+                                    <div class="bg-primary h-full rounded-t-lg"></div>
+                                </div>
+                                <span class="text-xs mt-2 text-gray-500">Fri</span>
+                            </div>
+                            <div class="flex-1 flex flex-col items-center">
+                                <div class="w-full bg-gray-200 rounded-t-lg" style="height: 90%">
+                                    <div class="bg-primary h-full rounded-t-lg"></div>
+                                </div>
+                                <span class="text-xs mt-2 text-gray-500">Sat</span>
+                            </div>
+                            <div class="flex-1 flex flex-col items-center">
+                                <div class="w-full bg-gray-200 rounded-t-lg" style="height: 75%">
+                                    <div class="bg-primary h-full rounded-t-lg"></div>
+                                </div>
+                                <span class="text-xs mt-2 text-gray-500">Sun</span>
+                            </div>
+                        </div>
+                        <div class="mt-6 flex justify-center">
+                            <div class="flex items-center mr-6">
+                                <div class="w-3 h-3 rounded-full bg-primary mr-2"></div>
+                                <span class="text-sm text-gray-600">Promotions Used</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Top Performing Promotions -->
+                    <div class="bg-white rounded-xl shadow p-6">
+                        <h2 class="text-lg font-semibold text-gray-800 mb-4">Top Performing Promotions</h2>
+                        <div class="space-y-4">
+                            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                <div class="flex items-center">
+                                    <div class="w-10 h-10 rounded-lg bg-indigo-100 text-primary flex items-center justify-center">
+                                        <i class="fas fa-fire"></i>
+                                    </div>
+                                    <div class="ml-3">
+                                        <h3 class="font-medium text-gray-800">Summer Sale</h3>
+                                        <p class="text-sm text-gray-500">20% off all products</p>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <p class="font-medium text-gray-800">1,240 uses</p>
+                                    <p class="text-sm text-green-600">+24% from last week</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                <div class="flex items-center">
+                                    <div class="w-10 h-10 rounded-lg bg-green-100 text-secondary flex items-center justify-center">
+                                        <i class="fas fa-gift"></i>
+                                    </div>
+                                    <div class="ml-3">
+                                        <h3 class="font-medium text-gray-800">Welcome Offer</h3>
+                                        <p class="text-sm text-gray-500">$10 off first order</p>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <p class="font-medium text-gray-800">856 uses</p>
+                                    <p class="text-sm text-green-600">+12% from last week</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                <div class="flex items-center">
+                                    <div class="w-10 h-10 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center">
+                                        <i class="fas fa-shipping-fast"></i>
+                                    </div>
+                                    <div class="ml-3">
+                                        <h3 class="font-medium text-gray-800">Free Shipping</h3>
+                                        <p class="text-sm text-gray-500">Orders over $50</p>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <p class="font-medium text-gray-800">732 uses</p>
+                                    <p class="text-sm text-green-600">+8% from last week</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Promotion Modal -->
+    <div id="addPromotionModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white rounded-xl shadow-lg w-full max-w-2xl">
+            <div class="p-6 border-b border-gray-200 flex justify-between items-center">
+                <h3 class="text-xl font-semibold text-gray-800">Add New Promotion</h3>
+                <button id="closeModal" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="p-6">
+                <form>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Promotion Name</label>
+                            <input type="text" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Promotion Type</label>
+                            <select class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:outline-none">
+                                <option>Percentage Discount</option>
+                                <option>Fixed Amount</option>
+                                <option>Free Shipping</option>
+                                <option>Buy One Get One</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Discount Value</label>
+                            <input type="text" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:outline-none" placeholder="e.g. 20 or 20%">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Max Discount Amount</label>
+                            <input type="text" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:outline-none" placeholder="Optional">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+                            <input type="date" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">End Date</label>
+                            <input type="date" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Minimum Purchase</label>
+                            <input type="text" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:outline-none" placeholder="e.g. $50">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Maximum Uses</label>
+                            <input type="number" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:outline-none" placeholder="Unlimited if empty">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                            <textarea rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:outline-none"></textarea>
+                        </div>
+                        <div class="md:col-span-2">
+                            <div class="flex items-center">
+                                <input type="checkbox" id="isActive" class="w-4 h-4 text-primary rounded focus:ring-primary">
+                                <label for="isActive" class="ml-2 text-sm text-gray-700">Set as active promotion</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-8 flex justify-end space-x-3">
+                        <button type="button" id="cancelModal" class="px-5 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">Cancel</button>
+                        <button type="submit" class="px-5 py-2 bg-primary text-white rounded-lg hover:bg-indigo-700">Create Promotion</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Mobile menu toggle
+        const mobileMenuButton = document.getElementById('mobileMenuButton');
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('overlay');
+        
+        mobileMenuButton.addEventListener('click', () => {
+            sidebar.classList.toggle('active');
+            overlay.classList.toggle('active');
+        });
+        
+        overlay.addEventListener('click', () => {
+            sidebar.classList.remove('active');
+            overlay.classList.remove('active');
+        });
+        
+        // Promotion modal toggle
+        const addPromotionBtn = document.getElementById('addPromotionBtn');
+        const addPromotionModal = document.getElementById('addPromotionModal');
+        const closeModal = document.getElementById('closeModal');
+        const cancelModal = document.getElementById('cancelModal');
+        
+        addPromotionBtn.addEventListener('click', () => {
+            addPromotionModal.classList.remove('hidden');
+        });
+        
+        closeModal.addEventListener('click', () => {
+            addPromotionModal.classList.add('hidden');
+        });
+        
+        cancelModal.addEventListener('click', () => {
+            addPromotionModal.classList.add('hidden');
+        });
+        
+        // Close modal when clicking outside
+        window.addEventListener('click', (e) => {
+            if (e.target === addPromotionModal) {
+                addPromotionModal.classList.add('hidden');
+            }
+        });
+        
+        // Simulate chart animation
+        document.addEventListener('DOMContentLoaded', () => {
+            const bars = document.querySelectorAll('.chart-container > div > div > div');
+            bars.forEach(bar => {
+                const height = bar.style.height;
+                bar.style.height = '0';
+                setTimeout(() => {
+                    bar.style.transition = 'height 1s ease-in-out';
+                    bar.style.height = height;
+                }, 300);
+            });
+        });
+    </script>
+</body>
+</html>

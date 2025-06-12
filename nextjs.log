@@ -1,0 +1,32 @@
+
+> my-nextjs-frontend@0.1.0 dev
+> next dev --turbopack
+
+
+[31m✘[39m next.js v15.3.2 is [31mnot yet supported[39m in the Community edition of [33mConsole Ninja[39m.
+We are working hard on it for you [36mhttps://tinyurl.com/3h9mtwra[39m.
+
+Estimated release dates:
+  - Community users: [36maround 6th July, 2025 [1m(subject to team availability)[22m[39m
+[33m  - PRO users[39m:       [1m[32mpriority access is available now[39m[22m
+
+ ⚠ Port 3000 is in use, using available port 3001 instead.
+
+[31m✘[39m next.js v15.3.2 is [31mnot yet supported[39m in the Community edition of [33mConsole Ninja[39m.
+We are working hard on it for you [36mhttps://tinyurl.com/3h9mtwra[39m.
+
+Estimated release dates:
+  - Community users: [36maround 6th July, 2025 [1m(subject to team availability)[22m[39m
+[33m  - PRO users[39m:       [1m[32mpriority access is available now[39m[22m
+
+   ▲ Next.js 15.3.2 (Turbopack)
+   - Local:        http://localhost:3001
+   - Network:      http://192.168.56.1:3001
+   - Environments: .env.local, .env
+
+ ✓ Starting...
+ ⚠ Invalid next.config.ts options detected: 
+ ⚠     Unrecognized key(s) in object: 'serverComponentsExternalPackages' at "experimental"
+ ⚠ See more info here: https://nextjs.org/docs/messages/invalid-next-config
+ ⚠ `experimental.serverComponentsExternalPackages` has been moved to `serverExternalPackages`. Please update your next.config.ts file accordingly.
+ ✓ Ready in 1262ms
