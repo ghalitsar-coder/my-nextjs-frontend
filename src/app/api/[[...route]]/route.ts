@@ -73,11 +73,52 @@ app.on(["POST", "GET"], "/api/auth/*", async (c) => {
   }
 });
 
-app.get("/api/session", (c) => {
+app.get("/api/session", async (c) => {
   const session = c.get("session");
   const user = c.get("user");
   if (!user) return c.json({ error: "Unauthorized" }, 401);
-  return c.json({ session, user });
+  
+  // Fetch user role from Spring Boot
+  try {
+    const response = await fetch(`${SPRING_BOOT_BASE_URL}/users/email/${user.email}`);
+    if (response.ok) {
+      const userData = await response.json();
+      const userWithRole = {
+        ...user,
+        role: userData.role || 'customer'
+      };
+      return c.json({ session, user: userWithRole });
+    }
+  } catch (error) {
+    console.error("Error fetching user role:", error);
+  }
+  
+  // Fallback if we can't get role from Spring Boot
+  return c.json({ session, user: { ...user, role: 'customer' } });
+});
+
+// Set role cookie endpoint (moved from /api/auth/set-role to avoid conflict)
+app.post("/api/set-role", async (c) => {
+  try {
+    const { role } = await c.req.json();
+    if (!role || !['admin', 'cashier', 'customer'].includes(role)) {
+      return c.json({ error: "Invalid role" }, 400);
+    }
+    
+    console.log(`[Set Role Cookie] Setting role cookie for role: ${role}`);
+    
+    // Set role cookie
+    const response = c.json({ success: true });
+    response.headers.set(
+      'Set-Cookie',
+      `user-role=${role}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${60 * 60 * 24 * 7}` // 7 days
+    );
+    
+    return response;
+  } catch (error) {
+    console.error("Error setting role cookie:", error);
+    return c.json({ error: "Failed to set role" }, 500);
+  }
 });
 
 // Health check endpoint
@@ -316,6 +357,28 @@ app.get("/api/orders/user/:userId", async (c) => {
   } catch (error) {
     console.error("Error fetching user orders:", error);
     return c.json({ error: "Failed to fetch user orders" }, 500);
+  }
+});
+
+// Get payment summary
+app.get("/api/orders/payment-summary", async (c) => {
+  try {
+    console.log(`[Proxy] Fetching payment summary from: ${SPRING_BOOT_BASE_URL}/orders/payment-summary`);
+    const response = await fetch(`${SPRING_BOOT_BASE_URL}/orders/payment-summary`);
+    
+    if (!response.ok) {
+      console.error(`[Proxy] Payment summary fetch failed with status ${response.status}`);
+      const errorText = await response.text();
+      console.error(`[Proxy] Error details:`, errorText);
+      return c.json({ error: "Failed to fetch payment summary from backend" }, 500);
+    }
+    
+    const data = await response.json();
+    console.log(`[Proxy] Payment summary fetched successfully, count:`, data?.length || 'N/A');
+    return c.json(data);
+  } catch (error) {
+    console.error("Error fetching payment summary:", error);
+    return c.json({ error: "Failed to fetch payment summary" }, 500);
   }
 });
 
@@ -759,6 +822,169 @@ app.delete("/api/order-promotions/:id", async (c) => {
     console.error("Error removing promotion from order:", error);
     return c.json({ error: "Failed to remove promotion from order" }, 500);
   }
+});
+
+// Update user profile
+app.put("/api/users/:id", async (c) => {
+  try {
+    const id = c.req.param("id");
+    const body = await c.req.json();
+    const response = await fetch(`${SPRING_BOOT_BASE_URL}/users/${id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    });
+      if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`Update user failed with status ${response.status}:`, errorText);
+      return c.json({ error: "Failed to update user" }, 400);
+    }
+    
+    const data = await response.json();
+    return c.json(data);
+  } catch (error) {
+    console.error("Error updating user:", error);
+    return c.json({ error: "Failed to update user" }, 500);
+  }
+});
+
+// Change user password
+app.put("/api/users/:id/password", async (c) => {
+  try {
+    const id = c.req.param("id");
+    const body = await c.req.json();
+    const response = await fetch(`${SPRING_BOOT_BASE_URL}/users/${id}/password`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    });
+      if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`Password change failed with status ${response.status}:`, errorText);
+      return c.json({ error: errorText || "Failed to change password" }, 400);
+    }
+    
+    return c.json({ message: "Password changed successfully" });
+  } catch (error) {
+    console.error("Error changing password:", error);
+    return c.json({ error: "Failed to change password" }, 500);
+  }
+});
+
+// Payment-related endpoints
+app.get("/api/payments", async (c) => {
+  try {
+    console.log(`[Proxy] Fetching  SSS payments from: ${SPRING_BOOT_BASE_URL}/orders/payment-summary`);
+    const response = await fetch(`${SPRING_BOOT_BASE_URL}/orders/payment-summary`);
+    
+    if (!response.ok) {
+      console.error(`[Proxy] Payment fetch failed with status ${response.status}`);
+      const errorText = await response.text();
+      console.error(`[Proxy] Error details:`, errorText);
+      return c.json({ error: "Failed to fetch payment data from backend" }, 500);
+    }
+    
+    const data = await response.json();
+    console.log(`[Proxy] Payment data fetched successfully, count:`, data?.length || 'N/A');
+    return c.json(data);
+  } catch (error) {
+    console.error("Error fetching payments:", error);
+    return c.json({ error: "Failed to fetch payments" }, 500);
+  }
+});
+
+app.get("/api/payments/:id", async (c) => {
+  const id = c.req.param("id");
+  try {
+    console.log(`[Proxy] Fetching payment for order ${id} from: ${SPRING_BOOT_BASE_URL}/api/orders/${id}/payment`);
+    const response = await fetch(`${SPRING_BOOT_BASE_URL}/api/orders/${id}/payment`);
+    
+    if (!response.ok) {
+      console.error(`[Proxy] Payment fetch failed for order ${id} with status ${response.status}`);
+      const errorText = await response.text();
+      console.error(`[Proxy] Error details:`, errorText);
+      return c.json({ error: "Payment not found" }, 404);
+    }
+    
+    const data = await response.json();
+    return c.json(data);
+  } catch (error) {
+    console.error("Error fetching payment:", error);
+    return c.json({ error: "Failed to fetch payment" }, 500);
+  }
+});
+
+app.post("/api/payments/:orderId/update", async (c) => {
+  const orderId = c.req.param("orderId");
+  try {
+    const body = await c.req.json();
+    console.log(`[Proxy] Updating payment for order ${orderId}:`, body);
+    
+    const response = await fetch(`${SPRING_BOOT_BASE_URL}/api/orders/${orderId}/payment`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    });
+      
+    if (!response.ok) {
+      console.error(`[Proxy] Payment update failed for order ${orderId} with status ${response.status}`);
+      const errorData = await response.text();
+      console.error(`[Proxy] Error details:`, errorData);
+      return c.json({ error: errorData }, 500);
+    }
+    
+    const data = await response.json();
+    console.log(`[Proxy] Payment updated successfully for order ${orderId}:`, data);
+    return c.json(data);
+  } catch (error) {
+    console.error("Error updating payment:", error);
+    return c.json({ error: "Failed to update payment" }, 500);
+  }
+});
+
+// Debug endpoint to check current user role
+app.get("/api/debug/role", async (c) => {
+  const session = c.get("session");
+  const user = c.get("user");
+  
+  if (!user) {
+    return c.json({ 
+      authenticated: false, 
+      user: null, 
+      role: null,
+      error: "Not authenticated" 
+    });
+  }
+
+  // Try to get role from Spring Boot
+  let backendRole = null;
+  try {
+    const response = await fetch(`${SPRING_BOOT_BASE_URL}/users/email/${user.email}`);
+    if (response.ok) {
+      const userData = await response.json();
+      backendRole = userData.role;
+    }
+  } catch (error) {
+    console.error("Error fetching user role from backend:", error);
+  }
+
+  return c.json({
+    authenticated: true,
+    user: {
+      id: user.id,
+      email: user.email,
+      name: user.name
+    },
+    roleFromBackend: backendRole,
+    sessionUser: user,
+    hasSession: !!session
+  });
 });
 
 // Catch-all for undefined routes

@@ -16,27 +16,37 @@ export async function middleware(request: NextRequest) {
     pathname === '/register'
   ) {
     return NextResponse.next();
-  }
-
-  try {
+  }  try {
     // Check for session cookie and user role cookie
     const sessionCookie = request.cookies.get('better-auth.session_token');
-    const isAuthenticated = !!sessionCookie?.value;
-    
-    // Try to get user role from cookie or local storage alternative
-    // Since we can't decrypt in edge runtime, we'll use a different approach
-    // We can set a separate cookie for role during login
+    const isAuthenticated = !!sessionCookie?.value;    // Get user role from our custom cookie - try multiple ways to read it
     const roleCookie = request.cookies.get('user-role');
-    const userRole = roleCookie?.value || null;
+    let userRole = roleCookie?.value || null;
+    
+    // Fallback: try reading from raw cookie header
+    if (!userRole) {
+      const cookieHeader = request.headers.get('cookie');
+      if (cookieHeader) {
+        const match = cookieHeader.match(/user-role=([^;]+)/);
+        userRole = match ? match[1] : null;
+      }
+    }
     
     console.log(`[Middleware] Session for ${pathname}:`, isAuthenticated ? 'authenticated' : 'not authenticated');
-    console.log(`[Middleware] User role:`, userRole || 'none');    // Define route access rules
+    console.log(`[Middleware] Role cookie object:`, roleCookie);
+    console.log(`[Middleware] Role cookie value:`, roleCookie?.value || 'NOT_FOUND');
+    console.log(`[Middleware] Final user role:`, userRole || 'none');
+    console.log(`[Middleware] Raw cookie header:`, request.headers.get('cookie'));
+    console.log(`[Middleware] All cookies:`, Object.fromEntries(
+      Array.from(request.cookies).map(([name, cookie]) => [name, cookie.value])
+    ));// Define route access rules
     const customerOnlyRoutes = [
       '/cart',
       '/order',
       '/order-history',
       '/payment',
       '/payment-complete',
+      '/profile',
     ];
 
     const adminOnlyRoutes = [
@@ -58,11 +68,16 @@ export async function middleware(request: NextRequest) {
       const loginUrl = new URL('/login', request.url);
       loginUrl.searchParams.set('redirect', pathname);
       return NextResponse.redirect(loginUrl);
-    }
+    }    // Role-based access control for authenticated users
+    if (isAuthenticated) {
+      console.log(`[Middleware] Checking role-based access for ${userRole || 'NO_ROLE'} accessing ${pathname}`);
 
-    // Role-based access control for authenticated users
-    if (isAuthenticated && userRole) {
-      console.log(`[Middleware] Checking role-based access for ${userRole} accessing ${pathname}`);
+      // If authenticated but no role cookie, this might be a timing issue
+      // For critical admin/cashier routes, redirect to login to re-establish role
+      if (!userRole && (pathname.startsWith('/dashboard/admin') || pathname.startsWith('/dashboard/cashier'))) {
+        console.log(`[Middleware] No role cookie for dashboard access, redirecting to login for re-authentication`);
+        return NextResponse.redirect(new URL('/login', request.url));
+      }
 
       // Admin role restrictions
       if (userRole === 'admin') {
@@ -137,16 +152,19 @@ export async function middleware(request: NextRequest) {
           console.log(`[Middleware] Redirecting customer from dashboard to home`);
           return NextResponse.redirect(new URL('/', request.url));
         }
-      }
-
-      // Handle users with no role or unknown role (treat as customer)
-      else {
-        console.log(`[Middleware] User has unknown role: ${userRole}, treating as customer`);
-        // Treat as customer - block admin/cashier access
+      }      // Handle users with no role or unknown role
+      if (!userRole || !['admin', 'cashier', 'customer'].includes(userRole)) {
+        console.log(`[Middleware] User has no role or unknown role: ${userRole}`);
+        
+        // If trying to access admin or cashier routes without proper role, redirect to login
         if (pathname.startsWith('/dashboard')) {
-          console.log(`[Middleware] Blocking user with unknown role from dashboard: ${pathname}`);
-          return NextResponse.redirect(new URL('/', request.url));
+          console.log(`[Middleware] Redirecting user with no/unknown role from dashboard to login`);
+          return NextResponse.redirect(new URL('/login', request.url));
         }
+        
+        // For other routes, treat as unauthenticated visitor (allow public access)
+        console.log(`[Middleware] Allowing public access for user with no role`);
+        return NextResponse.next();
       }
     }
 

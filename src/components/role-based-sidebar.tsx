@@ -38,44 +38,44 @@ const adminNavigation = [
     url: "/dashboard/admin",
     icon: IconDashboard,
   },
-  {
-    title: "Sales Analytics",
-    url: "/dashboard/admin/analytics",
-    icon: IconChartBar,
-    items: [
-      {
-        title: "Daily Reports",
-        url: "/dashboard/admin/analytics/daily",
-      },
-      {
-        title: "Monthly Reports",
-        url: "/dashboard/admin/analytics/monthly",
-      },
-      {
-        title: "Product Performance",
-        url: "/dashboard/admin/analytics/products",
-      },
-    ],
-  },
-  {
-    title: "User Management",
-    url: "/dashboard/admin/users",
-    icon: IconUsers,
-    items: [
-      {
-        title: "All Users",
-        url: "/dashboard/admin/users",
-      },
-      {
-        title: "Cashiers",
-        url: "/dashboard/admin/users/cashiers",
-      },
-      {
-        title: "Customers",
-        url: "/dashboard/admin/users/customers",
-      },
-    ],
-  },
+  // {
+  //   title: "Sales Analytics",
+  //   url: "/dashboard/admin/analytics",
+  //   icon: IconChartBar,
+  //   items: [
+  //     {
+  //       title: "Daily Reports",
+  //       url: "/dashboard/admin/analytics/daily",
+  //     },
+  //     {
+  //       title: "Monthly Reports",
+  //       url: "/dashboard/admin/analytics/monthly",
+  //     },
+  //     {
+  //       title: "Product Performance",
+  //       url: "/dashboard/admin/analytics/products",
+  //     },
+  //   ],
+  // },
+  // {
+  //   title: "User Management",
+  //   url: "/dashboard/admin/users",
+  //   icon: IconUsers,
+  //   items: [
+  //     {
+  //       title: "All Users",
+  //       url: "/dashboard/admin/users",
+  //     },
+  //     {
+  //       title: "Cashiers",
+  //       url: "/dashboard/admin/users/cashiers",
+  //     },
+  //     {
+  //       title: "Customers",
+  //       url: "/dashboard/admin/users/customers",
+  //     },
+  //   ],
+  // },
   {
     title: "Product Management",
     url: "/dashboard/admin/products",
@@ -152,25 +152,25 @@ const adminNavigation = [
       },
     ],
   },
-  {
-    title: "System Settings",
-    url: "/dashboard/admin/settings",
-    icon: IconSettings,
-    items: [
-      {
-        title: "General Settings",
-        url: "/dashboard/admin/settings/general",
-      },
-      {
-        title: "Payment Settings",
-        url: "/dashboard/admin/settings/payment",
-      },
-      {
-        title: "Email Templates",
-        url: "/dashboard/admin/settings/email",
-      },
-    ],
-  },
+  // {
+  //   title: "System Settings",
+  //   url: "/dashboard/admin/settings",
+  //   icon: IconSettings,
+  //   items: [
+  //     {
+  //       title: "General Settings",
+  //       url: "/dashboard/admin/settings/general",
+  //     },
+  //     {
+  //       title: "Payment Settings",
+  //       url: "/dashboard/admin/settings/payment",
+  //     },
+  //     {
+  //       title: "Email Templates",
+  //       url: "/dashboard/admin/settings/email",
+  //     },
+  //   ],
+  // },
 ];
 
 // Cashier navigation - limited access
@@ -180,21 +180,21 @@ const cashierNavigation = [
     url: "/dashboard/cashier",
     icon: IconDashboard,
   },
-  {
-    title: "Point of Sale",
-    url: "/dashboard/cashier/pos",
-    icon: IconShoppingBag,
-    items: [
-      {
-        title: "New Order",
-        url: "/dashboard/cashier/pos/new",
-      },
-      {
-        title: "Current Orders",
-        url: "/dashboard/cashier/pos/current",
-      },
-    ],
-  },
+  // {
+  //   title: "Point of Sale",
+  //   url: "/dashboard/cashier/pos",
+  //   icon: IconShoppingBag,
+  //   items: [
+  //     {
+  //       title: "New Order",
+  //       url: "/dashboard/cashier/pos/new",
+  //     },
+  //     {
+  //       title: "Current Orders",
+  //       url: "/dashboard/cashier/pos/current",
+  //     },
+  //   ],
+  // },
   {
     title: "Order History",
     url: "/dashboard/cashier/order-history",
@@ -214,21 +214,21 @@ const cashierNavigation = [
       },
     ],
   },
-  {
-    title: "Products",
-    url: "/dashboard/cashier/products",
-    icon: IconCoffee,
-    items: [
-      {
-        title: "Menu Items",
-        url: "/dashboard/cashier/products/menu",
-      },
-      {
-        title: "Stock Check",
-        url: "/dashboard/cashier/products/stock",
-      },
-    ],
-  },
+  // {
+  //   title: "Products",
+  //   url: "/dashboard/cashier/products",
+  //   icon: IconCoffee,
+  //   items: [
+  //     {
+  //       title: "Menu Items",
+  //       url: "/dashboard/cashier/products/menu",
+  //     },
+  //     {
+  //       title: "Stock Check",
+  //       url: "/dashboard/cashier/products/stock",
+  //     },
+  //   ],
+  // },
   {
     title: "Payments",
     url: "/dashboard/cashier/payments",
@@ -244,21 +244,21 @@ const cashierNavigation = [
       },
     ],
   },
-  {
-    title: "Daily Reports",
-    url: "/dashboard/cashier/reports",
-    icon: IconReceipt,
-    items: [
-      {
-        title: "Sales Summary",
-        url: "/dashboard/cashier/reports/sales",
-      },
-      {
-        title: "Transaction Log",
-        url: "/dashboard/cashier/reports/transactions",
-      },
-    ],
-  },
+  // {
+  //   title: "Daily Reports",
+  //   url: "/dashboard/cashier/reports",
+  //   icon: IconReceipt,
+  //   items: [
+  //     {
+  //       title: "Sales Summary",
+  //       url: "/dashboard/cashier/reports/sales",
+  //     },
+  //     {
+  //       title: "Transaction Log",
+  //       url: "/dashboard/cashier/reports/transactions",
+  //     },
+  //   ],
+  // },
 ];
 
 interface RoleBasedSidebarProps {

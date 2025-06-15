@@ -15,6 +15,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { authClient, signIn } from "@/lib/auth-client";
 import { toast } from "sonner";
+import { refreshUserData } from "@/components/Header";
 
 export function LoginForm({
   className,
@@ -35,17 +36,77 @@ export function LoginForm({
       const { error: authError } = await signIn.email({
         email,
         password,
-        // callbackURL: "/",
-      } ,
-    
-    );
+      });
 
       if (authError) {
         setError(authError.message || "Login failed");
         toast.error(authError.message || "Login failed");
       } else {
         toast.success("Login successful!");
-        router.push("/dashboard");
+
+        // Wait a moment for the session to be established
+        await new Promise((resolve) => setTimeout(resolve, 200));
+
+        // Get user session to determine role and redirect appropriately
+        try {
+          const sessionResponse = await fetch("/api/session");
+          if (sessionResponse.ok) {
+            const sessionData = await sessionResponse.json();
+            const userRole = sessionData.user?.role || "customer"; // Set role cookie for middleware
+            try {
+              const roleResponse = await fetch("/api/set-role", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ role: userRole }),
+              });
+
+              if (roleResponse.ok) {
+                console.log(
+                  `[Login] Role cookie set successfully for role: ${userRole}`
+                );
+              } else {
+                console.error(
+                  "[Login] Failed to set role cookie:",
+                  await roleResponse.text()
+                );
+              }
+            } catch (roleError) {
+              console.error("Error setting role cookie:", roleError);
+            }
+
+            // Refresh header user data
+            refreshUserData();
+
+            // Wait a bit more for the cookie to be properly set
+            await new Promise((resolve) => setTimeout(resolve, 300));
+            // Force redirect based on role (don't go back to previous page)
+            // Use window.location.href to ensure browser reload and middleware gets updated cookies
+            switch (userRole) {
+              case "admin":
+                console.log("[Login] Redirecting admin to dashboard");
+                window.location.href = "/dashboard/admin";
+                break;
+              case "cashier":
+                console.log("[Login] Redirecting cashier to dashboard");
+                window.location.href = "/dashboard/cashier";
+                break;
+              case "customer":
+              default:
+                console.log("[Login] Redirecting customer to home");
+                window.location.href = "/";
+                break;
+            }
+          } else {
+            // Fallback if we can't determine role
+            refreshUserData();
+            router.replace("/");
+          }
+        } catch (roleError) {
+          console.error("Error determining user role:", roleError);
+          // Fallback redirect and refresh header
+          refreshUserData();
+          router.replace("/");
+        }
       }
     } catch (err: unknown) {
       console.error("Login error:", err);
@@ -56,19 +117,20 @@ export function LoginForm({
       setIsLoading(false);
     }
   };
-
   const handleGoogleSignIn = async () => {
     try {
       setIsLoading(true);
       const { error } = await authClient.signIn.social({
         provider: "google",
-        callbackURL: "/dashboard",
+        callbackURL: "/auth/callback", // This will handle the role-based redirect
       });
 
       if (error) {
         toast.error("Google sign-in failed");
         setError("Google sign-in failed");
       }
+      // Note: On successful Google sign-in, user will be redirected to /auth/callback
+      // which handles the role-based redirect logic
     } catch (err: unknown) {
       console.error("Google sign-in error:", err);
       setError("Google sign-in failed");

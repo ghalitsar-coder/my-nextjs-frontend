@@ -38,34 +38,90 @@ interface HeaderProps {
   className?: string;
 }
 
+// Global state for user refresh trigger
+let userRefreshTrigger: (() => void) | null = null;
+
+export function refreshUserData() {
+  if (userRefreshTrigger) {
+    userRefreshTrigger();
+  }
+}
+
 export default function Header({ className = "" }: HeaderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
   const router = useRouter();
 
-  // Check authentication status
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const session = await authClient.getSession();
-        if (session.data) {
+  const checkAuth = async () => {
+    setIsLoading(true);
+    try {
+      // First get the session from better-auth
+      const session = await authClient.getSession();
+      if (session.data?.user) {
+        // Then get the user details with role from our API
+        try {
+          const response = await fetch("/api/session");
+          if (response.ok) {
+            const sessionData = await response.json();
+            if (sessionData.user) {
+              setUser({
+                id: sessionData.user.id,
+                name: sessionData.user.name || sessionData.user.email,
+                email: sessionData.user.email,
+                role: sessionData.user.role || "customer",
+                image: sessionData.user.image || undefined,
+              });
+            } else {
+              setUser(null);
+            }
+          } else {
+            // Fallback to better-auth session data without role
+            setUser({
+              id: session.data.user.id,
+              name: session.data.user.name || session.data.user.email,
+              email: session.data.user.email,
+              role: "customer",
+              image: session.data.user.image || undefined,
+            });
+          }
+        } catch (apiError) {
+          console.error("Error fetching user role:", apiError);
+          // Fallback to better-auth session data
           setUser({
             id: session.data.user.id,
             name: session.data.user.name || session.data.user.email,
             email: session.data.user.email,
-            role: "customer", // Better-auth user doesn't have role by default
+            role: "customer",
             image: session.data.user.image || undefined,
           });
         }
-      } catch (error) {
-        console.error("Auth check failed:", error);
-      } finally {
-        setIsLoading(false);
+      } else {
+        setUser(null);
       }
+    } catch (error) {
+      console.error("Auth check failed:", error);
+      setUser(null);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Check authentication status
+  useEffect(() => {
+    checkAuth();
+  }, [refreshKey]);
+
+  // Set up global refresh trigger
+  useEffect(() => {
+    userRefreshTrigger = () => {
+      setRefreshKey((prev) => prev + 1);
     };
 
-    checkAuth();
+    return () => {
+      userRefreshTrigger = null;
+    };
   }, []);
 
   // Remove cart count logic since we're using Zustand store
